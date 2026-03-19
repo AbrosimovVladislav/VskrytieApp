@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { classifyQuery, fetchMatchData } from '@/lib/openai/client'
+import { classifyQuery, findNextMatch, fetchMatchStats, fetchMatchData } from '@/lib/openai/client'
 import { createServiceClient } from '@/lib/supabase/server'
 import { validateTelegramInitData } from '@/lib/telegram/validate'
 import { MatchReport } from '@/lib/types/report'
@@ -94,15 +94,32 @@ export async function POST(req: NextRequest) {
         console.log('[analyze] report created, id:', report.id)
         send({ type: 'id', id: report.id })
 
-        // Step 3: fetch match data + stats from Perplexity (single call)
-        send({ type: 'step', step: 3, message: 'Ищем матч и статистику...' })
-        console.log('[analyze] step 3: fetchMatchData, isTeam:', context.isTeam)
-        const stats = await fetchMatchData(query, context.isTeam)
-        console.log('[analyze] stats length:', stats.length)
+        // Step 3: fetch match data + stats from Perplexity
+        let stats: string
+        let claudeContext: string
 
-        const claudeContext = context.isTeam
-          ? `Пользователь ввёл название команды "${context.teamName}" (${context.sport}). Perplexity нашёл ближайший матч и статистику — всё ниже. Анализируй именно найденный ближайший матч.`
-          : `Пользователь запросил анализ матча: "${query}".`
+        if (context.isTeam && context.teamName) {
+          // 3a: Two parallel sonar calls to find & verify next match
+          send({ type: 'step', step: 3, message: 'Ищем ближайший матч...' })
+          console.log('[analyze] step 3a: findNextMatch')
+          const match = await findNextMatch(context.teamName, context.sport)
+          console.log('[analyze] match found:', JSON.stringify(match))
+
+          // 3b: Detailed stats via sonar-pro with verified match
+          send({ type: 'step', step: 3, message: `${match.teamA} vs ${match.teamB} — собираем статистику...` })
+          console.log('[analyze] step 3b: fetchMatchStats')
+          stats = await fetchMatchStats(match)
+          console.log('[analyze] stats length:', stats.length)
+
+          claudeContext = `Матч: ${match.teamA} vs ${match.teamB}, ${match.date}, ${match.league}. Арена: ${match.venue}, время: ${match.time}. Анализируй именно этот матч.`
+        } else {
+          send({ type: 'step', step: 3, message: 'Ищем статистику...' })
+          console.log('[analyze] step 3: fetchMatchData (direct match)')
+          stats = await fetchMatchData(query, false)
+          console.log('[analyze] stats length:', stats.length)
+
+          claudeContext = `Пользователь запросил анализ матча: "${query}".`
+        }
 
         // Step 4: Claude structured JSON call (non-streaming)
         send({ type: 'step', step: 4, message: 'Структурируем данные...' })
