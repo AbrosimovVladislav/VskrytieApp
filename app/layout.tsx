@@ -22,6 +22,8 @@ export const metadata: Metadata = {
   description: 'Аналитический помощник для беттора',
 }
 
+export { viewport } from './viewport'
+
 export default function RootLayout({
   children,
 }: {

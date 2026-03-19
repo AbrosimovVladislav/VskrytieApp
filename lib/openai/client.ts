@@ -75,17 +75,19 @@ export async function findNextMatch(team: string, sport: string | null): Promise
   const sportCtx = sport ? ` (${sport})` : ''
 
   // Два разных промпта для перекрёстной проверки
+  const dateConstraint = `СТРОГО: дата матча должна быть НЕ РАНЬШЕ ${today}. Прошедшие матчи НЕ подходят. Нужен БУДУЩИЙ или сегодняшний матч.`
+
   const [res1, res2] = await Promise.all([
     perplexity.chat.completions.create({
       model: 'sonar',
       messages: [
         {
           role: 'system',
-          content: `Сегодня ${today}. Найди ближайший матч по официальному расписанию. Отвечай строго JSON.`,
+          content: `Сегодня ${today}. ${dateConstraint} Отвечай строго JSON.`,
         },
         {
           role: 'user',
-          content: `Какой ближайший матч у команды "${team}"${sportCtx}? Дата ${today} или позже.
+          content: `Следующий матч команды "${team}"${sportCtx}? ${dateConstraint}
 Ищи в расписании лиги, на flashscore, sports.ru, championat.com.
 Верни JSON:
 {"teamA": "хозяева", "teamB": "гости", "date": "ДД.ММ.ГГГГ", "time": "ЧЧ:ММ", "venue": "арена", "league": "лига"}`,
@@ -97,11 +99,11 @@ export async function findNextMatch(team: string, sport: string | null): Promise
       messages: [
         {
           role: 'system',
-          content: `Сегодня ${today}. Ты спортивный журналист. Отвечай строго JSON.`,
+          content: `Сегодня ${today}. ${dateConstraint} Отвечай строго JSON.`,
         },
         {
           role: 'user',
-          content: `Расписание "${team}"${sportCtx}: следующий матч после ${today}?
+          content: `Календарь "${team}"${sportCtx}: ближайший предстоящий матч? ${dateConstraint}
 Верни JSON:
 {"teamA": "хозяева", "teamB": "гости", "date": "ДД.ММ.ГГГГ", "time": "ЧЧ:ММ", "venue": "арена", "league": "лига"}`,
         },
@@ -117,11 +119,26 @@ export async function findNextMatch(team: string, sport: string | null): Promise
     } catch { return null }
   }
 
-  const m1 = parse(res1.choices[0].message.content ?? '')
-  const m2 = parse(res2.choices[0].message.content ?? '')
+  // Проверка что дата не в прошлом
+  const isNotPast = (match: MatchInfo): boolean => {
+    try {
+      // Парсим ДД.ММ.ГГГГ
+      const parts = match.date.match(/(\d{2})\.(\d{2})\.(\d{4})/)
+      if (!parts) return true // не можем проверить — пропускаем
+      const matchDate = `${parts[3]}-${parts[2]}-${parts[1]}`
+      return matchDate >= today
+    } catch { return true }
+  }
 
-  console.log('[findNextMatch] result1:', JSON.stringify(m1))
-  console.log('[findNextMatch] result2:', JSON.stringify(m2))
+  const m1raw = parse(res1.choices[0].message.content ?? '')
+  const m2raw = parse(res2.choices[0].message.content ?? '')
+
+  // Фильтруем прошедшие матчи
+  const m1 = m1raw && isNotPast(m1raw) ? m1raw : null
+  const m2 = m2raw && isNotPast(m2raw) ? m2raw : null
+
+  console.log('[findNextMatch] result1:', JSON.stringify(m1raw), m1 ? '✓' : '✗ past date')
+  console.log('[findNextMatch] result2:', JSON.stringify(m2raw), m2 ? '✓' : '✗ past date')
 
   // Если оба нашли одного соперника — высокая уверенность
   if (m1 && m2) {
