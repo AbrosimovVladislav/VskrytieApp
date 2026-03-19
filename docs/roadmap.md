@@ -1,78 +1,74 @@
 # VSKRYTIE — Roadmap
 
-## Phase 0 — Подготовка ✅
+---
 
-- [x] Концепция продукта
-- [x] CLAUDE.md
-- [x] docs/ структура
+## POC — Proof of Concept
+
+**Цель**: Рабочий прототип — пользователь открывает бота, вводит запрос, получает отчёт.
+
+### Phase 0 — Подготовка ✅
+
+- ✅ Концепция продукта
+- ✅ CLAUDE.md
+- ✅ docs/ структура
+
+### Phase 1 — Инфраструктура ✅
+
+- ✅ Next.js 15 проект (Turbopack, TypeScript, Tailwind v4)
+- ✅ Зависимости: `@tma.js/sdk-react`, `@supabase/ssr`, shadcn/ui
+- ✅ Telegram Bot через @BotFather
+- ✅ Supabase проект, таблицы `users`, `reports`, `payments`
+- ✅ `lib/supabase`, `lib/telegram/validate.ts`
+- ✅ Layout с bottom navigation
+- ✅ Деплой на Vercel, Mini App в BotFather
+
+### Phase 2 — Ядро: Отчёт ✅
+
+- ✅ Главный экран с полем ввода запроса
+- ✅ `POST /api/analyze` — SSE endpoint
+  - ❌ Реальная валидация Telegram initData (сейчас `'dev'`)
+  - ✅ OpenAI web search (`gpt-4o-search-preview`) — статистика
+  - ✅ Claude API (sonnet-4-6) — генерация отчёта
+  - ✅ Стриминг через Server-Sent Events
+- ✅ Экран отчёта
+- ✅ Сохранение в Supabase
+- ✅ Экран истории
+
+### Phase 3 — Полировка POC 🔲
+
+- ❌ Подключить реальный Telegram initData через `@tma.js/sdk-react`
+- ❌ Upsert пользователя при первом запуске
+- ❌ Счётчик оставшихся отчётов на главном экране
+- ❌ Skeleton placeholder при загрузке
+- ❌ Telegram тема (dark/light)
+- ❌ Haptic feedback на ключевых действиях
 
 ---
 
-## Phase 1 — Инфраструктура ✅
+## MVP
 
-**Цель**: Рабочее Next.js приложение внутри Telegram с базой данных.
+**Цель**: Монетизируемый продукт с оплатой и нормальным UX.
 
-- [x] Инициализировать Next.js 15 проект (Turbopack, TypeScript, Tailwind v4)
-- [x] Установить зависимости: `@tma.js/sdk-react`, `@supabase/ssr`, shadcn/ui
-- [ ] Создать Telegram Bot через @BotFather, получить токен
-- [x] Настроить Supabase проект (`spgrwxwljbcsshopkwzp`), создать таблицы `users`, `reports`, `payments`
-- [x] Настроить `lib/supabase/client.ts` и `lib/supabase/server.ts`
-- [x] Настроить `lib/telegram/validate.ts`
-- [x] Базовый layout с bottom navigation
-- [ ] Деплой на Vercel, настроить HTTPS URL в Telegram Bot как Mini App
+### Phase 4 — Оплата: Telegram Stars 🔲
 
----
+- ❌ Модель: N бесплатных отчётов, далее — Stars
+- ❌ `POST /api/payments/invoice` — создание инвойса
+- ❌ `POST /api/webhook` — `pre_checkout_query` и `successful_payment`
+- ❌ Обновление баланса в Supabase после оплаты
+- ❌ UI: экран покупки, счётчик отчётов
 
-## Phase 2 — Ядро: Отчёт 🔲
+### Phase 5 — Полировка MVP 🔲
 
-**Цель**: Пользователь вводит запрос — получает аналитический отчёт.
-
-- [ ] Главный экран с полем ввода запроса (команда/матч)
-- [ ] `POST /api/analyze` endpoint
-  - [ ] Валидация Telegram initData
-  - [ ] Запрос к Perplexity API (sonar) — получение статистики
-  - [ ] Запрос к Claude API (sonnet-4-6) — генерация отчёта
-  - [ ] Стриминг ответа в клиент через Server-Sent Events или Response stream
-- [ ] Экран отчёта с секциями:
-  - Форма команды / результаты последних матчей
-  - Травмы и состав
-  - H2H история
-  - Коэффициенты букмекеров
-  - Итоговая рекомендация
-- [ ] Сохранение отчёта в Supabase (`reports` таблица)
-- [ ] Экран истории отчётов
-
----
-
-## Phase 3 — Оплата: Telegram Stars 🔲
-
-**Цель**: Монетизация через Telegram Stars.
-
-- [ ] Модель: N бесплатных отчётов, далее — Stars
-- [ ] `POST /api/payments/invoice` — создание инвойса через Bot API
-- [ ] Telegram webhook (`POST /api/webhook`) — обработка `pre_checkout_query` и `successful_payment`
-- [ ] Обновление баланса/статуса в Supabase после оплаты
-- [ ] UI: экран покупки, счётчик оставшихся отчётов
-
----
-
-## Phase 4 — Полировка UI 🔲
-
-**Цель**: Продакшн-качество интерфейса.
-
-- [ ] Анимации загрузки отчёта (skeleton, streaming индикатор)
-- [ ] Onboarding экран для новых пользователей
-- [ ] Экран настроек (язык, уведомления)
-- [ ] Error states и empty states
-- [ ] Telegram тема (dark/light) — финальная проверка
-- [ ] Haptic feedback на ключевых действиях
-- [ ] Performance audit (bundle size, LCP)
+- ❌ Onboarding для новых пользователей
+- ❌ Экран настроек
+- ❌ Error states и empty states (полный охват)
+- ❌ Performance audit (bundle size, LCP)
 
 ---
 
 ## Backlog
 
-- Push-уведомления через Telegram Bot (напоминания)
+- Push-уведомления через Telegram Bot
 - Избранные команды
 - Экспорт отчёта в PDF
 - Поддержка нескольких видов спорта (хоккей, теннис, баскетбол)
