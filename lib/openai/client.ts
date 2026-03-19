@@ -89,7 +89,7 @@ export async function fetchMatchData(teamOrMatch: string, isTeam: boolean): Prom
 ВАЖНО: Данные нужны по ОБЕИМ командам равноценно. Русский язык, кратко.`
 
   const response = await perplexity.chat.completions.create({
-    model: 'sonar',
+    model: 'sonar-pro',
     messages: [
       {
         role: 'system',
