@@ -1,41 +1,45 @@
 import OpenAI from 'openai'
 
-export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const perplexity = new OpenAI({
+  apiKey: process.env.PERPLEXITY_API_KEY,
+  baseURL: 'https://api.perplexity.ai',
 })
 
 export interface QueryContext {
   isTeam: boolean
   sport: string | null
   teamName: string | null
-  matchQuery: string // финальный запрос для анализа (конкретный матч)
-  nextMatchInfo: string | null // найденная инфа о следующем матче
+  matchQuery: string
+  nextMatchInfo: string | null
 }
 
 /**
  * Определяет: запрос — это команда или конкретный матч.
- * Если команда — находит её следующий матч и возвращает как matchQuery.
+ * Если команда — находит её следующий матч через Perplexity.
  */
 export async function resolveQuery(query: string): Promise<QueryContext> {
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini-search-preview',
+  const today = new Date().toISOString().split('T')[0]
+
+  const response = await perplexity.chat.completions.create({
+    model: 'sonar',
     messages: [
       {
+        role: 'system',
+        content: `Сегодня ${today}. Ты помогаешь определить спортивный запрос и найти актуальный матч. Отвечай строго JSON без лишнего текста.`,
+      },
+      {
         role: 'user',
-        content: `Сегодня: ${new Date().toISOString().split('T')[0]}. Запрос: "${query}"
+        content: `Запрос: "${query}"
 
-Задача:
-1. Это команда или конкретный матч?
-2. Если команда — найди через поиск её СЛЕДУЮЩИЙ матч, который ЕЩЁ НЕ СЫГРАН (дата строго после ${new Date().toISOString().split('T')[0]}). Матчи до этой даты не подходят.
-3. Верни JSON.
-
-Только JSON:
+1. Это название команды или конкретный матч?
+2. Если команда — найди её СЛЕДУЮЩИЙ матч, который ещё не сыгран (дата строго после ${today}).
+3. Верни JSON:
 {
   "isTeam": true/false,
   "sport": "футбол"/"хоккей"/"баскетбол"/null,
   "teamName": "название"/null,
   "matchQuery": "Команда1 vs Команда2, дата, турнир",
-  "nextMatchInfo": "краткое описание матча"/null
+  "nextMatchInfo": "краткое описание"/null
 }`,
       },
     ],
@@ -58,20 +62,25 @@ export async function resolveQuery(query: string): Promise<QueryContext> {
 }
 
 /**
- * Ищет актуальную статистику для конкретного матча.
+ * Собирает актуальную статистику через Perplexity.
  */
 export async function fetchMatchStats(matchQuery: string): Promise<string> {
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini-search-preview',
+  const today = new Date().toISOString().split('T')[0]
+
+  const response = await perplexity.chat.completions.create({
+    model: 'sonar',
     messages: [
       {
+        role: 'system',
+        content: `Сегодня ${today}. Ты спортивный аналитик. Давай актуальные данные на основе последних новостей.`,
+      },
+      {
         role: 'user',
-        content: `Дай подробную аналитику для ставок по матчу: ${matchQuery}.
-Нужно: текущая форма команд, личные встречи, травмы/дисквалификации, ключевые игроки, аналитика.
-Отвечай на русском языке, кратко и по делу.`,
+        content: `Найди актуальную статистику для ставок: ${matchQuery}.
+Нужно: форма команд за последние 5-10 матчей, личные встречи, травмы и дисквалификации, ключевые игроки, коэффициенты букмекеров.
+Отвечай на русском, кратко и по делу.`,
       },
     ],
-    max_tokens: 1000,
   })
 
   return response.choices[0].message.content ?? ''
