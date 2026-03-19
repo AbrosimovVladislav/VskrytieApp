@@ -8,17 +8,17 @@
 
 ---
 
-## Phase 1 — Инфраструктура 🔲
+## Phase 1 — Инфраструктура ✅
 
 **Цель**: Рабочее Next.js приложение внутри Telegram с базой данных.
 
-- [ ] Инициализировать Next.js 15 проект (Turbopack, TypeScript, Tailwind v4)
-- [ ] Установить зависимости: `@tma.js/sdk-react`, `@supabase/ssr`, shadcn/ui
+- [x] Инициализировать Next.js 15 проект (Turbopack, TypeScript, Tailwind v4)
+- [x] Установить зависимости: `@tma.js/sdk-react`, `@supabase/ssr`, shadcn/ui
 - [ ] Создать Telegram Bot через @BotFather, получить токен
-- [ ] Настроить Supabase проект, создать таблицы `users`, `reports`
-- [ ] Настроить `lib/supabase/client.ts` и `lib/supabase/server.ts`
-- [ ] Настроить `lib/telegram/validate.ts`
-- [ ] Базовый layout с bottom navigation
+- [x] Настроить Supabase проект (`spgrwxwljbcsshopkwzp`), создать таблицы `users`, `reports`, `payments`
+- [x] Настроить `lib/supabase/client.ts` и `lib/supabase/server.ts`
+- [x] Настроить `lib/telegram/validate.ts`
+- [x] Базовый layout с bottom navigation
 - [ ] Деплой на Vercel, настроить HTTPS URL в Telegram Bot как Mini App
 
 ---
