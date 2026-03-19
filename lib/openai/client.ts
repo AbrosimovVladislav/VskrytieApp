@@ -70,8 +70,12 @@ export async function resolveQuery(query: string): Promise<QueryContext> {
 /**
  * Собирает актуальную статистику через Perplexity.
  */
-export async function fetchMatchStats(matchQuery: string): Promise<string> {
+export async function fetchMatchStats(matchQuery: string, needNextMatch: boolean = false): Promise<string> {
   const today = new Date().toISOString().split('T')[0]
+
+  const nextMatchInstruction = needNextMatch
+    ? `\nСНАЧАЛА найди ближайший предстоящий матч этой команды после ${today} (соперник, дата, турнир). Это главный приоритет.\n`
+    : ''
 
   const response = await perplexity.chat.completions.create({
     model: 'sonar',
@@ -83,7 +87,7 @@ export async function fetchMatchStats(matchQuery: string): Promise<string> {
       {
         role: 'user',
         content: `Найди актуальную статистику для ставок: ${matchQuery}.
-Нужно: форма команд за последние 5-10 матчей, личные встречи, травмы и дисквалификации, ключевые игроки, коэффициенты букмекеров.
+${nextMatchInstruction}Нужно: форма команд за последние 5-10 матчей, личные встречи, травмы и дисквалификации, ключевые игроки, коэффициенты букмекеров.
 Отвечай на русском, кратко и по делу.`,
       },
     ],

@@ -105,7 +105,8 @@ export async function POST(req: NextRequest) {
         // Step 3
         send({ type: 'step', step: 3, message: 'Ищем статистику...' })
         console.log('[analyze] step 3: fetchMatchStats for:', context.matchQuery)
-        const stats = await fetchMatchStats(context.matchQuery)
+        const needNextMatch = context.isTeam && !context.nextMatchInfo
+        const stats = await fetchMatchStats(context.matchQuery, needNextMatch)
         console.log('[analyze] stats length:', stats.length)
 
         // Step 4
