@@ -10,36 +10,30 @@ export interface QueryContext {
   sport: string | null
   teamName: string | null
   matchQuery: string
-  nextMatchInfo: string | null
 }
 
 /**
- * Определяет: запрос — это команда или конкретный матч.
- * Если команда — находит её следующий матч через Perplexity.
+ * Классифицирует запрос: команда или конкретный матч.
+ * НЕ ищет расписание — только определяет тип.
  */
-export async function resolveQuery(query: string): Promise<QueryContext> {
-  const today = new Date().toISOString().split('T')[0]
-
+export async function classifyQuery(query: string): Promise<QueryContext> {
   const response = await perplexity.chat.completions.create({
     model: 'sonar',
     messages: [
       {
         role: 'system',
-        content: `Сегодня ${today}. Ты помогаешь определить спортивный запрос и найти актуальный матч. Отвечай строго JSON без лишнего текста.`,
+        content: 'Определи спортивный запрос. Отвечай строго JSON без лишнего текста.',
       },
       {
         role: 'user',
         content: `Запрос: "${query}"
 
-1. Это название команды или конкретный матч?
-2. Если команда — найди БЛИЖАЙШИЙ по дате матч, который ещё НЕ сыгран. Дата матча должна быть строго после ${today}. Ищи именно самый ближайший, а не какой-нибудь важный или плей-офф.
-3. Верни JSON. matchQuery НИКОГДА не null и не пустой.
+Это название команды или конкретный матч (две команды)?
+Верни JSON:
 {
   "isTeam": true/false,
   "sport": "футбол"/"хоккей"/"баскетбол"/null,
-  "teamName": "название команды или null",
-  "matchQuery": "Команда1 vs Команда2, дата, турнир (или просто название команды если не нашёл)",
-  "nextMatchInfo": "Краткое: соперник, дата, время, место (или null если не нашёл)"
+  "teamName": "название команды или null"
 }`,
       },
     ],
@@ -47,51 +41,68 @@ export async function resolveQuery(query: string): Promise<QueryContext> {
 
   try {
     const text = (response.choices[0].message.content ?? '').trim()
-    console.log('[resolveQuery] raw response:', text)
+    console.log('[classifyQuery] raw:', text)
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('No JSON in response')
-    const parsed = JSON.parse(jsonMatch[0]) as QueryContext
-    console.log('[resolveQuery] parsed:', JSON.stringify(parsed))
-    return parsed
-  } catch (e) {
-    console.error('[resolveQuery] parse error:', e)
+    const parsed = JSON.parse(jsonMatch[0])
+    console.log('[classifyQuery] parsed:', JSON.stringify(parsed))
     return {
-      isTeam: false,
-      sport: null,
-      teamName: null,
+      isTeam: parsed.isTeam ?? false,
+      sport: parsed.sport ?? null,
+      teamName: parsed.teamName ?? null,
       matchQuery: query,
-      nextMatchInfo: null,
     }
+  } catch (e) {
+    console.error('[classifyQuery] parse error:', e)
+    return { isTeam: false, sport: null, teamName: null, matchQuery: query }
   }
 }
 
 /**
- * Собирает актуальную статистику через Perplexity.
+ * Ищет ближайший матч + статистику через Perplexity в одном запросе.
  */
-export async function fetchMatchStats(matchQuery: string, needNextMatch: boolean = false): Promise<string> {
+export async function fetchMatchData(teamOrMatch: string, isTeam: boolean): Promise<string> {
   const today = new Date().toISOString().split('T')[0]
 
-  const nextMatchInstruction = needNextMatch
-    ? `\nСНАЧАЛА найди самый ближайший по дате предстоящий матч этой команды после ${today} (не плей-офф если есть регулярка). Укажи: соперник, точная дата, время, место. Это главный приоритет.\n`
-    : ''
+  const prompt = isTeam
+    ? `Команда: ${teamOrMatch}. Сегодня ${today}.
+
+ЗАДАЧА 1 (ГЛАВНАЯ): Найди ближайший предстоящий матч этой команды. Дата должна быть строго после ${today}. Нужен САМЫЙ БЛИЖАЙШИЙ матч — не важный, не плей-офф, а именно следующий по календарю. Укажи: соперник, точная дата, время, место проведения, турнир.
+
+ЗАДАЧА 2: Дай статистику для ставок на этот матч:
+- Форма обеих команд за последние 5-10 матчей
+- Личные встречи между ними
+- Травмы и дисквалификации
+- Ключевые игроки
+- Коэффициенты букмекеров (если есть)
+
+Отвечай на русском, кратко и по делу.`
+    : `Матч: ${teamOrMatch}. Сегодня ${today}.
+
+Найди актуальную статистику для ставок на этот матч:
+- Форма команд за последние 5-10 матчей
+- Личные встречи
+- Травмы и дисквалификации
+- Ключевые игроки
+- Коэффициенты букмекеров (если есть)
+
+Отвечай на русском, кратко и по делу.`
 
   const response = await perplexity.chat.completions.create({
     model: 'sonar',
     messages: [
       {
         role: 'system',
-        content: `Сегодня ${today}. Ты спортивный аналитик. Давай актуальные данные на основе последних новостей.`,
+        content: `Сегодня ${today}. Ты спортивный аналитик. Давай актуальные данные на основе последних новостей и официальных календарей.`,
       },
       {
         role: 'user',
-        content: `Найди актуальную статистику для ставок: ${matchQuery}.
-${nextMatchInstruction}Нужно: форма команд за последние 5-10 матчей, личные встречи, травмы и дисквалификации, ключевые игроки, коэффициенты букмекеров.
-Отвечай на русском, кратко и по делу.`,
+        content: prompt,
       },
     ],
   })
 
   const result = response.choices[0].message.content ?? ''
-  console.log('[fetchMatchStats] response length:', result.length, 'preview:', result.slice(0, 200))
+  console.log('[fetchMatchData] length:', result.length, 'preview:', result.slice(0, 300))
   return result
 }

@@ -17,8 +17,6 @@ const STEPS = [
 interface MatchFound {
   teamName: string
   sport: string
-  nextMatchInfo: string
-  matchQuery: string
 }
 
 export default function HomePage() {
@@ -80,8 +78,6 @@ export default function HomePage() {
             setMatchFound({
               teamName: event.teamName as string,
               sport: event.sport as string,
-              nextMatchInfo: event.nextMatchInfo as string,
-              matchQuery: event.matchQuery as string,
             })
           } else if (event.type === 'chunk') {
             reportRef.current += event.content as string
@@ -172,12 +168,9 @@ export default function HomePage() {
 
       {/* Match found banner */}
       {matchFound && (
-        <div className="rounded-xl bg-accent/10 border border-accent/30 px-4 py-3 flex flex-col gap-1">
+        <div className="rounded-xl bg-accent/10 border border-accent/30 px-4 py-3">
           <span className="text-xs text-accent font-medium uppercase tracking-wide">
             {matchFound.sport} · {matchFound.teamName}
-          </span>
-          <span className="text-sm text-text">
-            {matchFound.nextMatchInfo}
           </span>
         </div>
       )}

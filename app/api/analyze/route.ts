@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { resolveQuery, fetchMatchStats } from '@/lib/openai/client'
+import { classifyQuery, fetchMatchData } from '@/lib/openai/client'
 import { createServiceClient } from '@/lib/supabase/server'
 import { validateTelegramInitData } from '@/lib/telegram/validate'
 
@@ -50,32 +50,23 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Step 1
+        // Step 1: classify query
         send({ type: 'step', step: 1, message: 'Определяем запрос...' })
-        console.log('[analyze] step 1: resolveQuery')
-        const context = await resolveQuery(query)
+        console.log('[analyze] step 1: classifyQuery')
+        const context = await classifyQuery(query)
         console.log('[analyze] context:', JSON.stringify(context))
 
-        // Fallback: если matchQuery не заполнен — строим из teamName или оригинального запроса
-        if (!context.matchQuery || context.matchQuery === 'null') {
-          context.matchQuery = context.teamName
-            ? `${context.teamName} следующий матч ${new Date().toISOString().split('T')[0]}`
-            : query
-        }
-
-        if (context.isTeam && context.nextMatchInfo) {
+        if (context.isTeam && context.teamName) {
           send({
             type: 'match_found',
             teamName: context.teamName,
             sport: context.sport,
-            nextMatchInfo: context.nextMatchInfo,
-            matchQuery: context.matchQuery,
           })
         }
 
-        // Step 2
+        // Step 2: create report in supabase
         send({ type: 'step', step: 2, message: 'Создаём отчёт...' })
-        console.log('[analyze] step 2: create report in supabase')
+        console.log('[analyze] step 2: create report')
         const db = createServiceClient()
 
         if (telegramUserId) {
@@ -87,7 +78,7 @@ export async function POST(req: NextRequest) {
 
         const { data: report, error: reportError } = await db
           .from('reports')
-          .insert({ query: context.matchQuery, telegram_user_id: telegramUserId ?? null, status: 'pending' })
+          .insert({ query, telegram_user_id: telegramUserId ?? null, status: 'pending' })
           .select('id')
           .single()
 
@@ -102,20 +93,19 @@ export async function POST(req: NextRequest) {
         console.log('[analyze] report created, id:', report.id)
         send({ type: 'id', id: report.id })
 
-        // Step 3
-        send({ type: 'step', step: 3, message: 'Ищем статистику...' })
-        console.log('[analyze] step 3: fetchMatchStats for:', context.matchQuery)
-        const needNextMatch = context.isTeam && !context.nextMatchInfo
-        const stats = await fetchMatchStats(context.matchQuery, needNextMatch)
+        // Step 3: fetch match data + stats from Perplexity (single call)
+        send({ type: 'step', step: 3, message: 'Ищем матч и статистику...' })
+        console.log('[analyze] step 3: fetchMatchData, isTeam:', context.isTeam)
+        const stats = await fetchMatchData(query, context.isTeam)
         console.log('[analyze] stats length:', stats.length)
 
-        // Step 4
+        // Step 4: Claude analysis
         send({ type: 'step', step: 4, message: 'Генерируем аналитику...' })
         console.log('[analyze] step 4: claude stream')
 
-        const systemContext = context.isTeam
-          ? `Пользователь искал команду "${context.teamName}" (${context.sport}). Был найден её следующий матч: ${context.nextMatchInfo}. Анализируй именно этот предстоящий матч.`
-          : `Пользователь запросил анализ: "${query}".`
+        const claudeContext = context.isTeam
+          ? `Пользователь ввёл название команды "${context.teamName}" (${context.sport}). Perplexity нашёл ближайший матч и статистику — всё ниже. Анализируй именно найденный ближайший матч.`
+          : `Пользователь запросил анализ матча: "${query}".`
 
         const claudeStream = anthropic.messages.stream({
           model: 'claude-haiku-4-5-20251001',
@@ -123,9 +113,9 @@ export async function POST(req: NextRequest) {
           messages: [
             {
               role: 'user',
-              content: `Ты — профессиональный аналитик для беттинга. ${systemContext}
+              content: `Ты — профессиональный аналитик для беттинга. ${claudeContext}
 
-Статистика из интернета:
+Данные из Perplexity (поиск по интернету):
 ${stats}
 
 Дай отчёт в формате:
@@ -160,7 +150,7 @@ ${stats}
         }
         console.log('[analyze] claude done, summary length:', fullSummary.length)
 
-        // Step 5
+        // Step 5: save
         send({ type: 'step', step: 5, message: 'Сохраняем...' })
         console.log('[analyze] step 5: save to supabase')
         await db.from('reports').update({ raw_stats: stats, summary: fullSummary, status: 'completed' }).eq('id', report.id)
