@@ -17,14 +17,16 @@ export interface QueryContext {
  * Если команда — находит её следующий матч и возвращает как matchQuery.
  */
 export async function resolveQuery(query: string): Promise<QueryContext> {
-  const response = await openai.responses.create({
-    model: 'gpt-4o-mini-search-preview',
-    tools: [{ type: 'web_search_preview' }],
-    input: `Проанализируй запрос пользователя: "${query}"
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-search-preview',
+    messages: [
+      {
+        role: 'user',
+        content: `Проанализируй запрос пользователя: "${query}"
 
 Определи:
 1. Это название команды (без конкретного матча) или конкретный матч/событие?
-2. Если команда — какой вид спорта? Найди её ближайший предстоящий матч (дата, соперник, турнир).
+2. Если команда — какой вид спорта? Предположи ближайший предстоящий матч (дата, соперник, турнир).
 3. Если уже конкретный матч — просто подтверди.
 
 Ответь строго в JSON формате:
@@ -37,15 +39,16 @@ export async function resolveQuery(query: string): Promise<QueryContext> {
 }
 
 Только JSON, без лишнего текста.`,
+      },
+    ],
   })
 
   try {
-    const text = response.output_text.trim()
+    const text = (response.choices[0].message.content ?? '').trim()
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('No JSON in response')
     return JSON.parse(jsonMatch[0]) as QueryContext
   } catch {
-    // Fallback: считаем что это уже конкретный матч
     return {
       isTeam: false,
       sport: null,
@@ -60,13 +63,18 @@ export async function resolveQuery(query: string): Promise<QueryContext> {
  * Ищет актуальную статистику для конкретного матча.
  */
 export async function fetchMatchStats(matchQuery: string): Promise<string> {
-  const response = await openai.responses.create({
-    model: 'gpt-4o-mini-search-preview',
-    tools: [{ type: 'web_search_preview' }],
-    input: `Найди актуальную статистику и последние новости для ставок: ${matchQuery}.
-Нужно: текущая форма команд, личные встречи, травмы/дисквалификации, аналитика букмекеров, коэффициенты.
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-search-preview',
+    messages: [
+      {
+        role: 'user',
+        content: `Дай подробную аналитику для ставок по матчу: ${matchQuery}.
+Нужно: текущая форма команд, личные встречи, травмы/дисквалификации, ключевые игроки, аналитика.
 Отвечай на русском языке, кратко и по делу.`,
+      },
+    ],
+    max_tokens: 1000,
   })
 
-  return response.output_text
+  return response.choices[0].message.content ?? ''
 }
