@@ -2,21 +2,22 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Search, Clock, Settings } from 'lucide-react'
+import { Home, BarChart3, Wallet, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
-  { href: '/', icon: Search, label: 'Анализ' },
-  { href: '/history', icon: Clock, label: 'История' },
-  { href: '/settings', icon: Settings, label: 'Настройки' },
+  { href: '/', icon: Home, label: 'Главная' },
+  { href: '/history', icon: BarChart3, label: 'Анализы' },
+  { href: '/balance', icon: Wallet, label: 'Баланс' },
+  { href: '/settings', icon: Settings, label: 'Ещё' },
 ] as const
 
 export function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md h-16 bg-bg-secondary border-t border-border z-50">
-      <div className="flex h-full">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-bg-secondary shadow-[--shadow-nav] z-50 pt-5 pb-8 px-4">
+      <div className="flex items-center">
         {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
           const isActive = pathname === href
 
@@ -29,14 +30,8 @@ export function BottomNav() {
                 isActive ? 'text-accent' : 'text-muted'
               )}
             >
-              <Icon
-                size={22}
-                strokeWidth={isActive ? 2.5 : 1.8}
-              />
-              <span className={cn(
-                'text-[10px] font-medium tracking-wide',
-                isActive ? 'text-accent' : 'text-muted'
-              )}>
+              <Icon size={24} strokeWidth={isActive ? 2 : 1.5} />
+              <span className="text-[10px] font-medium tracking-wide">
                 {label}
               </span>
             </Link>

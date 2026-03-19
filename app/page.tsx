@@ -102,28 +102,28 @@ export default function HomePage() {
     <div className="flex flex-col px-4 pt-10 gap-6">
       {/* Header */}
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-text">ВСКРЫТИЕ</h1>
-        <p className="text-sm text-text-secondary">Аналитика матча — быстро и точно</p>
+        <h1 className="font-display text-2xl tracking-tight text-accent">ВСКРЫТИЕ</h1>
+        <p className="text-sm text-muted">Аналитика матча — быстро и точно</p>
       </div>
 
       {/* Search */}
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-3 bg-bg-card border border-border rounded-xl px-4 py-3.5">
-          <Search size={18} className="text-muted shrink-0" />
+        <div className="flex items-center gap-3 bg-bg-card border border-border rounded-[--radius-button] px-4 py-3.5 shadow-[--shadow-light]">
+          <Search size={16} className="text-muted shrink-0" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             placeholder="ЦСКА, Реал Мадрид или ЦСКА vs Спартак"
-            className="flex-1 bg-transparent text-sm text-text placeholder:text-text-secondary outline-none"
+            className="flex-1 bg-transparent text-sm text-text placeholder:text-muted outline-none"
             disabled={isRunning}
           />
         </div>
         <button
           onClick={handleSubmit}
           disabled={!query.trim() || isRunning}
-          className="w-full h-12 rounded-xl bg-accent text-bg font-semibold text-sm tracking-wide disabled:opacity-40 flex items-center justify-center gap-2 transition-opacity"
+          className="w-full h-12 rounded-[--radius-button] bg-accent text-bg-card-dark font-semibold text-sm tracking-wide disabled:opacity-40 flex items-center justify-center gap-2 transition-opacity"
         >
           {isRunning && <Loader2 size={16} className="animate-spin" />}
           {isRunning ? stepMessage : 'Получить отчёт'}
@@ -132,7 +132,7 @@ export default function HomePage() {
 
       {/* Step progress */}
       {(isRunning || status === 'done') && (
-        <div className="rounded-xl bg-bg-card border border-border px-4 py-4">
+        <div className="rounded-[--radius-card] bg-bg-overlay border border-border px-4 py-4">
           <div className="flex items-start justify-between">
             {STEPS.map((step, i) => {
               const s = getStepStatus(step.id)
@@ -142,7 +142,7 @@ export default function HomePage() {
                     <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
                       s === 'done' ? 'bg-accent' :
                       s === 'active' ? 'bg-accent animate-pulse' :
-                      'bg-border'
+                      'bg-border-secondary'
                     }`} />
                     <span className={`text-[10px] text-center leading-tight max-w-[52px] ${
                       s === 'pending' ? 'text-muted' :
@@ -153,7 +153,7 @@ export default function HomePage() {
                     </span>
                   </div>
                   {i < STEPS.length - 1 && (
-                    <div className="flex-1 h-px mx-1 mb-5 bg-border overflow-hidden">
+                    <div className="flex-1 h-px mx-1 mb-5 bg-border-secondary overflow-hidden">
                       <div className={`h-full bg-accent transition-all duration-500 ${
                         s === 'done' ? 'w-full' : 'w-0'
                       }`} />
@@ -168,8 +168,8 @@ export default function HomePage() {
 
       {/* Match found banner */}
       {matchFound && (
-        <div className="rounded-xl bg-accent/10 border border-accent/30 px-4 py-3">
-          <span className="text-xs text-accent font-medium uppercase tracking-wide">
+        <div className="rounded-[--radius-button] bg-accent-dim border border-border-accent px-4 py-3">
+          <span className="text-xs text-accent font-semibold uppercase tracking-wide">
             {matchFound.sport} · {matchFound.teamName}
           </span>
         </div>
@@ -177,7 +177,7 @@ export default function HomePage() {
 
       {/* Streaming report */}
       {report && (
-        <div className="rounded-xl bg-bg-card border border-border px-4 py-4">
+        <div className="rounded-[--radius-card] bg-bg-card border border-border-card px-4 py-4 shadow-[--shadow-card]">
           <div className="text-sm leading-relaxed text-text whitespace-pre-wrap">{report}</div>
         </div>
       )}
@@ -189,16 +189,16 @@ export default function HomePage() {
           onClick={() => setError(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-bg-card border border-red-500/40 p-5 shadow-2xl max-h-[70vh] flex flex-col"
+            className="w-full max-w-md rounded-[--radius-card] bg-bg-card border border-negative/40 p-5 shadow-[--shadow-card] max-h-[70vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3 mb-3 shrink-0">
-              <span className="text-sm font-semibold text-red-400">Ошибка</span>
+              <span className="text-sm font-semibold text-negative">Ошибка</span>
               <button onClick={() => setError(null)} className="text-muted hover:text-text p-1">
                 <X size={16} />
               </button>
             </div>
-            <pre className="text-xs text-red-300 whitespace-pre-wrap break-all font-mono overflow-y-auto">
+            <pre className="text-xs text-negative/80 whitespace-pre-wrap break-all font-mono overflow-y-auto">
               {error}
             </pre>
           </div>

@@ -27,14 +27,25 @@
 - ✅ Главный экран с полем ввода запроса
 - ✅ `POST /api/analyze` — SSE endpoint
   - ❌ Реальная валидация Telegram initData (сейчас `'dev'`)
-  - ✅ OpenAI web search (`gpt-4o-search-preview`) — статистика
-  - ✅ Claude API (sonnet-4-6) — генерация отчёта
+  - ✅ Perplexity sonar — поиск матча + статистика
+  - ✅ Claude API (haiku-4-5) — генерация отчёта
   - ✅ Стриминг через Server-Sent Events
 - ✅ Экран отчёта
 - ✅ Сохранение в Supabase
 - ✅ Экран истории
 
-### Phase 3 — Полировка POC 🔲
+### Phase 3 — Визуальный отчёт 🔲
+
+- ❌ Типы `MatchReport` — структурированный JSON от Claude вместо markdown
+- ❌ Claude промпт → JSON output с секциями (header, form, stats, injuries, h2h, odds, recommendation)
+- ❌ Компоненты отчёта: Header, Form (точки W/L/D), KeyStats (сравнительные бары), Injuries (карточки), H2H (таблица + пропорц. бар), Odds (таблица коэфф.)
+- ❌ RecommendationSection — стриминг с typing-эффектом
+- ❌ Skeleton states для каждой секции
+- ❌ Анимации появления секций (fade-in + slide-up)
+
+> Дизайн: [`docs/ui-flow.md`](ui-flow.md) секции 3.0–3.6
+
+### Phase 4 — Полировка POC 🔲
 
 - ❌ Подключить реальный Telegram initData через `@tma.js/sdk-react`
 - ❌ Upsert пользователя при первом запуске
@@ -49,7 +60,7 @@
 
 **Цель**: Монетизируемый продукт с оплатой и нормальным UX.
 
-### Phase 4 — Оплата: Telegram Stars 🔲
+### Phase 5 — Оплата: Telegram Stars 🔲
 
 - ❌ Модель: N бесплатных отчётов, далее — Stars
 - ❌ `POST /api/payments/invoice` — создание инвойса
@@ -57,7 +68,7 @@
 - ❌ Обновление баланса в Supabase после оплаты
 - ❌ UI: экран покупки, счётчик отчётов
 
-### Phase 5 — Полировка MVP 🔲
+### Phase 6 — Полировка MVP 🔲
 
 - ❌ Onboarding для новых пользователей
 - ❌ Экран настроек
@@ -68,7 +79,9 @@
 
 ## Backlog
 
+- Оптимизация поискового флоу: TheSportsDB (расписание) + локальная классификация + Perplexity только для статистики → надёжность 60%→95%, стоимость -25%. [План](.claude/plans/magical-snacking-cocke.md)
 - Push-уведомления через Telegram Bot
 - Избранные команды
 - Экспорт отчёта в PDF
 - Поддержка нескольких видов спорта (хоккей, теннис, баскетбол)
+

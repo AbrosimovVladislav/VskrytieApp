@@ -1,12 +1,19 @@
 import type { Metadata } from 'next'
-import { Poppins } from 'next/font/google'
+import { Inter, Press_Start_2P } from 'next/font/google'
 import './globals.css'
 import { BottomNav } from '@/components/shared/bottom-nav'
 
-const poppins = Poppins({
-  subsets: ['latin', 'latin-ext'],
+const inter = Inter({
+  subsets: ['latin', 'cyrillic'],
   weight: ['400', '500', '600', '700'],
-  variable: '--font-poppins',
+  variable: '--font-inter',
+  display: 'swap',
+})
+
+const pressStart2P = Press_Start_2P({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400'],
+  variable: '--font-press-start',
   display: 'swap',
 })
 
@@ -21,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ru" className={poppins.variable}>
+    <html lang="ru" className={`${inter.variable} ${pressStart2P.variable}`}>
       <body className="bg-bg text-text antialiased">
         <div className="mx-auto max-w-md min-h-screen flex flex-col relative">
           <main className="flex-1 pb-20">
