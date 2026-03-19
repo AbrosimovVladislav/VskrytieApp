@@ -56,6 +56,7 @@ export type Database = {
           query: string
           raw_stats: string | null
           status: string
+          structured_report: Json | null
           summary: string | null
           telegram_user_id: number | null
         }
@@ -65,6 +66,7 @@ export type Database = {
           query: string
           raw_stats?: string | null
           status?: string
+          structured_report?: Json | null
           summary?: string | null
           telegram_user_id?: number | null
         }
@@ -74,6 +76,7 @@ export type Database = {
           query?: string
           raw_stats?: string | null
           status?: string
+          structured_report?: Json | null
           summary?: string | null
           telegram_user_id?: number | null
         }

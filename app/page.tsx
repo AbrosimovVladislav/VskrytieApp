@@ -1,7 +1,14 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { Search, Loader2, X } from 'lucide-react'
+import { MatchReport } from '@/lib/types/report'
+import {
+  HeaderSection, FormSection, StatsSection, InjuriesSection,
+  H2HSection, OddsSection, RecommendationSection,
+  HeaderSkeleton, FormSkeleton, StatsSkeleton, InjuriesSkeleton,
+  H2HSkeleton, OddsSkeleton, RecommendationSkeleton,
+} from '@/components/report'
 
 type StepStatus = 'pending' | 'active' | 'done'
 type AppStatus = 'idle' | 'running' | 'done' | 'error'
@@ -14,6 +21,8 @@ const STEPS = [
   { id: 5, label: 'Готово' },
 ]
 
+type SectionName = keyof MatchReport
+
 interface MatchFound {
   teamName: string
   sport: string
@@ -25,9 +34,14 @@ export default function HomePage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [stepMessage, setStepMessage] = useState('')
   const [matchFound, setMatchFound] = useState<MatchFound | null>(null)
-  const [report, setReport] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const reportRef = useRef('')
+
+  // Structured report sections
+  const [sections, setSections] = useState<Partial<MatchReport>>({})
+  const [visibleSections, setVisibleSections] = useState<Set<SectionName>>(new Set())
+  const [recommendation, setRecommendation] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
+  const recommendationRef = useRef('')
 
   const getStepStatus = (stepId: number): StepStatus => {
     if (stepId < currentStep) return 'done'
@@ -35,16 +49,27 @@ export default function HomePage() {
     return 'pending'
   }
 
+  const addSection = useCallback((name: SectionName, data: unknown) => {
+    setSections(prev => ({ ...prev, [name]: data }))
+    // Small delay for staggered animation
+    setTimeout(() => {
+      setVisibleSections(prev => new Set(prev).add(name))
+    }, 50)
+  }, [])
+
   const handleSubmit = async () => {
     if (!query.trim() || status === 'running') return
 
     setStatus('running')
     setCurrentStep(1)
     setStepMessage('Запускаем...')
-    setReport('')
     setMatchFound(null)
     setError(null)
-    reportRef.current = ''
+    setSections({})
+    setVisibleSections(new Set())
+    setRecommendation('')
+    setIsStreaming(false)
+    recommendationRef.current = ''
 
     try {
       const res = await fetch('/api/analyze', {
@@ -74,17 +99,21 @@ export default function HomePage() {
           if (event.type === 'step') {
             setCurrentStep(event.step as number)
             setStepMessage(event.message as string)
+            if ((event.step as number) === 5) setIsStreaming(true)
           } else if (event.type === 'match_found') {
             setMatchFound({
               teamName: event.teamName as string,
               sport: event.sport as string,
             })
+          } else if (event.type === 'section') {
+            addSection(event.section as SectionName, event.data)
           } else if (event.type === 'chunk') {
-            reportRef.current += event.content as string
-            setReport(reportRef.current)
+            recommendationRef.current += event.content as string
+            setRecommendation(recommendationRef.current)
           } else if (event.type === 'done') {
             setCurrentStep(6)
             setStatus('done')
+            setIsStreaming(false)
           } else if (event.type === 'error') {
             throw new Error(event.message as string)
           }
@@ -92,14 +121,20 @@ export default function HomePage() {
       }
     } catch (err) {
       setStatus('error')
+      setIsStreaming(false)
       setError(err instanceof Error ? err.message : String(err))
     }
   }
 
   const isRunning = status === 'running'
+  const showReport = isRunning || status === 'done'
+  const showSkeletons = isRunning
+
+  // Section order as per ui-flow
+  const sectionOrder: SectionName[] = ['header', 'form', 'stats', 'injuries', 'h2h', 'odds']
 
   return (
-    <div className="flex flex-col px-4 pt-10 gap-6">
+    <div className="flex flex-col px-4 pt-10 gap-6 pb-28">
       {/* Header */}
       <div className="flex flex-col gap-1">
         <h1 className="font-display text-2xl tracking-tight text-accent">ВСКРЫТИЕ</h1>
@@ -175,10 +210,79 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Streaming report */}
-      {report && (
-        <div className="rounded-[--radius-card] bg-bg-card border border-border-card px-4 py-4 shadow-[--shadow-card]">
-          <div className="text-sm leading-relaxed text-text whitespace-pre-wrap">{report}</div>
+      {/* Report sections */}
+      {showReport && (
+        <div className="flex flex-col gap-4">
+          {sectionOrder.map((name) => {
+            const data = sections[name]
+            const visible = visibleSections.has(name)
+
+            // Show skeleton if running and section not received yet
+            if (!data && showSkeletons) {
+              const Skeleton = {
+                header: HeaderSkeleton,
+                form: FormSkeleton,
+                stats: StatsSkeleton,
+                injuries: InjuriesSkeleton,
+                h2h: H2HSkeleton,
+                odds: OddsSkeleton,
+              }[name]
+              return Skeleton ? <Skeleton key={name} /> : null
+            }
+
+            if (!data) return null
+
+            return (
+              <div
+                key={name}
+                className={`transition-all duration-300 ease-out ${
+                  visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+                }`}
+              >
+                {name === 'header' && <HeaderSection {...(data as MatchReport['header'])} />}
+                {name === 'form' && sections.header && (
+                  <FormSection
+                    homeTeam={sections.header.homeTeam}
+                    awayTeam={sections.header.awayTeam}
+                    {...(data as MatchReport['form'])}
+                  />
+                )}
+                {name === 'stats' && sections.header && (
+                  <StatsSection
+                    homeTeam={sections.header.homeTeam}
+                    awayTeam={sections.header.awayTeam}
+                    stats={data as MatchReport['stats']}
+                  />
+                )}
+                {name === 'injuries' && sections.header && (
+                  <InjuriesSection
+                    homeTeam={sections.header.homeTeam}
+                    awayTeam={sections.header.awayTeam}
+                    {...(data as MatchReport['injuries'])}
+                  />
+                )}
+                {name === 'h2h' && sections.header && (
+                  <H2HSection
+                    homeTeam={sections.header.homeTeam}
+                    awayTeam={sections.header.awayTeam}
+                    {...(data as MatchReport['h2h'])}
+                  />
+                )}
+                {name === 'odds' && <OddsSection bookmakers={(data as MatchReport['odds']).bookmakers} />}
+              </div>
+            )
+          })}
+
+          {/* Recommendation */}
+          {recommendation ? (
+            <div className={`transition-all duration-300 ease-out ${
+              recommendation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+            }`}>
+              <RecommendationSection text={recommendation} isStreaming={isStreaming} />
+            </div>
+          ) : showSkeletons ? (
+            <RecommendationSkeleton />
+          ) : null}
         </div>
       )}
 

@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { createServiceClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
+import { MatchReport } from '@/lib/types/report'
+import { ReportView } from './report-view'
 
 export default async function ReportPage({
   params,
@@ -26,26 +28,15 @@ export default async function ReportPage({
     minute: '2-digit',
   })
 
+  const structured = report.structured_report as MatchReport | null
+
   return (
-    <div className="flex flex-col px-4 pt-8 gap-5 pb-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-text">{report.query}</h1>
-        <p className="text-xs text-muted">{date}</p>
-      </div>
-
-      {report.status === 'processing' && (
-        <div className="rounded-xl bg-bg-card border border-border px-4 py-4 text-sm text-text-secondary">
-          Отчёт ещё формируется…
-        </div>
-      )}
-
-      {report.summary && (
-        <div className="rounded-xl bg-bg-card border border-border px-4 py-4">
-          <div className="text-sm leading-relaxed text-text whitespace-pre-wrap">
-            {report.summary}
-          </div>
-        </div>
-      )}
-    </div>
+    <ReportView
+      query={report.query}
+      date={date}
+      status={report.status}
+      summary={report.summary}
+      structured={structured}
+    />
   )
 }

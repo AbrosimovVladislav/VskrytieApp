@@ -241,7 +241,7 @@ ${JSON.stringify(structuredReport)}
           .update({
             raw_stats: stats,
             summary: fullRecommendation,
-            structured_report: structuredReport,
+            structured_report: JSON.parse(JSON.stringify(structuredReport)),
             status: 'completed',
           })
           .eq('id', report.id)
