@@ -56,6 +56,9 @@ export async function POST(req: NextRequest) {
         const context = await resolveQuery(query)
         console.log('[analyze] context:', JSON.stringify(context))
 
+        // Fallback: если matchQuery не заполнен — используем оригинальный запрос
+        if (!context.matchQuery) context.matchQuery = query
+
         if (context.isTeam && context.nextMatchInfo) {
           send({
             type: 'match_found',
