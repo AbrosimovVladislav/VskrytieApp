@@ -191,15 +191,21 @@ export default function HomePage() {
 
       {/* Error modal */}
       {error && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-4">
-          <div className="w-full max-w-md rounded-2xl bg-bg-card border border-red-500/40 p-5 shadow-2xl">
-            <div className="flex items-start justify-between gap-3 mb-3">
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          onClick={() => setError(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-bg-card border border-red-500/40 p-5 shadow-2xl max-h-[70vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 mb-3 shrink-0">
               <span className="text-sm font-semibold text-red-400">Ошибка</span>
-              <button onClick={() => setError(null)} className="text-muted hover:text-text">
+              <button onClick={() => setError(null)} className="text-muted hover:text-text p-1">
                 <X size={16} />
               </button>
             </div>
-            <pre className="text-xs text-red-300 whitespace-pre-wrap break-all font-mono">
+            <pre className="text-xs text-red-300 whitespace-pre-wrap break-all font-mono overflow-y-auto">
               {error}
             </pre>
           </div>
