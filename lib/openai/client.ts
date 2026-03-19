@@ -18,7 +18,7 @@ export interface QueryContext {
  */
 export async function resolveQuery(query: string): Promise<QueryContext> {
   const response = await openai.responses.create({
-    model: 'gpt-4o-search-preview',
+    model: 'gpt-4o-mini-search-preview',
     tools: [{ type: 'web_search_preview' }],
     input: `Проанализируй запрос пользователя: "${query}"
 
@@ -61,7 +61,7 @@ export async function resolveQuery(query: string): Promise<QueryContext> {
  */
 export async function fetchMatchStats(matchQuery: string): Promise<string> {
   const response = await openai.responses.create({
-    model: 'gpt-4o-search-preview',
+    model: 'gpt-4o-mini-search-preview',
     tools: [{ type: 'web_search_preview' }],
     input: `Найди актуальную статистику и последние новости для ставок: ${matchQuery}.
 Нужно: текущая форма команд, личные встречи, травмы/дисквалификации, аналитика букмекеров, коэффициенты.
