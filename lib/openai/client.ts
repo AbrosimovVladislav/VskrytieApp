@@ -49,10 +49,14 @@ export async function resolveQuery(query: string): Promise<QueryContext> {
 
   try {
     const text = (response.choices[0].message.content ?? '').trim()
+    console.log('[resolveQuery] raw response:', text)
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('No JSON in response')
-    return JSON.parse(jsonMatch[0]) as QueryContext
-  } catch {
+    const parsed = JSON.parse(jsonMatch[0]) as QueryContext
+    console.log('[resolveQuery] parsed:', JSON.stringify(parsed))
+    return parsed
+  } catch (e) {
+    console.error('[resolveQuery] parse error:', e)
     return {
       isTeam: false,
       sport: null,
@@ -85,5 +89,7 @@ export async function fetchMatchStats(matchQuery: string): Promise<string> {
     ],
   })
 
-  return response.choices[0].message.content ?? ''
+  const result = response.choices[0].message.content ?? ''
+  console.log('[fetchMatchStats] response length:', result.length, 'preview:', result.slice(0, 200))
+  return result
 }
