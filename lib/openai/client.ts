@@ -18,7 +18,7 @@ export interface QueryContext {
  */
 export async function resolveQuery(query: string): Promise<QueryContext> {
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-search-preview',
+    model: 'gpt-4o-mini-search-preview',
     messages: [
       {
         role: 'user',
@@ -61,7 +61,7 @@ export async function resolveQuery(query: string): Promise<QueryContext> {
  */
 export async function fetchMatchStats(matchQuery: string): Promise<string> {
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-search-preview',
+    model: 'gpt-4o-mini-search-preview',
     messages: [
       {
         role: 'user',
