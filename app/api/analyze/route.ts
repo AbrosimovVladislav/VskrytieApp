@@ -56,8 +56,12 @@ export async function POST(req: NextRequest) {
         const context = await resolveQuery(query)
         console.log('[analyze] context:', JSON.stringify(context))
 
-        // Fallback: если matchQuery не заполнен — используем оригинальный запрос
-        if (!context.matchQuery) context.matchQuery = query
+        // Fallback: если matchQuery не заполнен — строим из teamName или оригинального запроса
+        if (!context.matchQuery || context.matchQuery === 'null') {
+          context.matchQuery = context.teamName
+            ? `${context.teamName} следующий матч ${new Date().toISOString().split('T')[0]}`
+            : query
+        }
 
         if (context.isTeam && context.nextMatchInfo) {
           send({

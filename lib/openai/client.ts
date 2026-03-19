@@ -33,13 +33,13 @@ export async function resolveQuery(query: string): Promise<QueryContext> {
 
 1. Это название команды или конкретный матч?
 2. Если команда — найди её СЛЕДУЮЩИЙ матч, который ещё не сыгран (дата строго после ${today}).
-3. Верни JSON:
+3. Верни JSON (matchQuery НИКОГДА не null — минимум название команды):
 {
   "isTeam": true/false,
   "sport": "футбол"/"хоккей"/"баскетбол"/null,
   "teamName": "название"/null,
-  "matchQuery": "Команда1 vs Команда2, дата, турнир",
-  "nextMatchInfo": "краткое описание"/null
+  "matchQuery": "Команда1 vs Команда2, дата, турнир" — если нашёл матч, иначе просто "название команды",
+  "nextMatchInfo": "краткое описание матча"/null
 }`,
       },
     ],
