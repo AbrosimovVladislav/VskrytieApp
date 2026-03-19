@@ -48,7 +48,7 @@
 
   /* Radii */
   --radius-card: 20px;
-  --radius-button: 10px;
+  --radius-button: 16px;
   --radius-tab: 8px;
   --radius-tag: 4px;
 
@@ -67,7 +67,6 @@
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);

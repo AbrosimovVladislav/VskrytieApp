@@ -3,8 +3,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import { classifyQuery, fetchMatchData } from '@/lib/openai/client'
 import { createServiceClient } from '@/lib/supabase/server'
 import { validateTelegramInitData } from '@/lib/telegram/validate'
+import { MatchReport } from '@/lib/types/report'
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -99,61 +100,151 @@ export async function POST(req: NextRequest) {
         const stats = await fetchMatchData(query, context.isTeam)
         console.log('[analyze] stats length:', stats.length)
 
-        // Step 4: Claude analysis
-        send({ type: 'step', step: 4, message: 'Генерируем аналитику...' })
-        console.log('[analyze] step 4: claude stream')
-
         const claudeContext = context.isTeam
           ? `Пользователь ввёл название команды "${context.teamName}" (${context.sport}). Perplexity нашёл ближайший матч и статистику — всё ниже. Анализируй именно найденный ближайший матч.`
           : `Пользователь запросил анализ матча: "${query}".`
 
-        const claudeStream = anthropic.messages.stream({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 2048,
-          messages: [
-            {
-              role: 'user',
-              content: `Ты — профессиональный аналитик для беттинга. ${claudeContext}
+        // Step 4: Claude structured JSON call (non-streaming)
+        send({ type: 'step', step: 4, message: 'Структурируем данные...' })
+        console.log('[analyze] step 4: claude structured JSON')
+
+        const structuredPrompt = `Ты — профессиональный аналитик для беттинга. ${claudeContext}
 
 Данные из Perplexity (поиск по интернету):
 ${stats}
 
-Дай отчёт в формате:
-## Общая картина
-[2-3 предложения о матче]
+Верни ТОЛЬКО валидный JSON в следующем формате (без markdown, без объяснений):
+{
+  "header": {
+    "league": "название лиги",
+    "date": "дата матча",
+    "homeTeam": "название хозяев",
+    "awayTeam": "название гостей",
+    "stadium": "стадион (если известен)",
+    "time": "время матча (если известно)"
+  },
+  "form": {
+    "home": ["W","D","L","W","W"],
+    "away": ["L","W","W","D","L"],
+    "homeAtHome": ["W","W","W","W","W"],
+    "awayAway": ["L","W","D","L","W"]
+  },
+  "stats": [
+    {"label": "Голов забито (5 матчей)", "homeValue": 8, "awayValue": 6},
+    {"label": "Голов пропущено (5 матчей)", "homeValue": 3, "awayValue": 5},
+    {"label": "Средний xG", "homeValue": 1.8, "awayValue": 1.4, "unit": "xG"}
+  ],
+  "injuries": {
+    "homeOk": true,
+    "awayOk": false,
+    "home": [],
+    "away": [
+      {"name": "Промес", "position": "Нападающий", "reason": "травма", "duration": "сезон"}
+    ]
+  },
+  "h2h": {
+    "homeWins": 7,
+    "awayWins": 3,
+    "draws": 2,
+    "matches": [
+      {"date": "15 окт 25", "homeTeam": "ЦСКА", "score": "2:1", "awayTeam": "Спартак"}
+    ],
+    "homeGroundRecord": "4П 0Н 1П"
+  },
+  "odds": {
+    "bookmakers": [
+      {"name": "Фонбет", "home": 1.85, "draw": 3.40, "away": 4.20}
+    ]
+  }
+}
 
-## Ключевые факторы
-- [фактор 1]
-- [фактор 2]
-- [фактор 3]
+Если данных нет — используй разумные значения на основе контекста или оставь пустые массивы. stats должен содержать 3-4 позиции.`
 
-## Статистика
-[основные числа]
+        let structuredReport: MatchReport | null = null
 
-## Рекомендации
-[конкретные советы по ставкам]
+        try {
+          const structuredResponse = await anthropic.messages.create({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 2048,
+            messages: [
+              {
+                role: 'user',
+                content: structuredPrompt,
+              },
+            ],
+          })
 
-## Риски
-[что может пойти не так]
+          const rawText = structuredResponse.content
+            .filter((block) => block.type === 'text')
+            .map((block) => (block as { type: 'text'; text: string }).text)
+            .join('')
 
-Пиши кратко, конкретно, без воды. Русский язык.`,
+          console.log('[analyze] structured raw length:', rawText.length)
+
+          // Strip possible markdown code fences before parsing
+          const jsonText = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+
+          structuredReport = JSON.parse(jsonText) as MatchReport
+
+          // Emit section events
+          const sections: (keyof MatchReport)[] = ['header', 'form', 'stats', 'injuries', 'h2h', 'odds']
+          for (const section of sections) {
+            if (structuredReport[section] !== undefined) {
+              send({ type: 'section', section, data: structuredReport[section] })
+            }
+          }
+        } catch (parseErr) {
+          console.error('[analyze] structured JSON parse error:', parseErr)
+          send({ type: 'error', message: 'Ошибка разбора данных' })
+          // Continue — we can still do the recommendation stream without structured data
+        }
+
+        // Step 5: Claude recommendation (streaming)
+        send({ type: 'step', step: 5, message: 'Генерируем рекомендацию...' })
+        console.log('[analyze] step 5: claude recommendation stream')
+
+        const recommendationPrompt = `Ты — профессиональный аналитик для беттинга. ${claudeContext}
+
+Данные:
+${stats}
+
+Структурированный анализ:
+${JSON.stringify(structuredReport)}
+
+Дай краткую аналитику (3-5 предложений): оцени шансы, выдели ключевые факторы, дай конкретный вывод. Без списков, только связный текст. Русский язык.`
+
+        const claudeStream = anthropic.messages.stream({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 512,
+          messages: [
+            {
+              role: 'user',
+              content: recommendationPrompt,
             },
           ],
         })
 
-        let fullSummary = ''
+        let fullRecommendation = ''
         for await (const event of claudeStream) {
           if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-            fullSummary += event.delta.text
+            fullRecommendation += event.delta.text
             send({ type: 'chunk', content: event.delta.text })
           }
         }
-        console.log('[analyze] claude done, summary length:', fullSummary.length)
+        console.log('[analyze] recommendation done, length:', fullRecommendation.length)
 
-        // Step 5: save
-        send({ type: 'step', step: 5, message: 'Сохраняем...' })
-        console.log('[analyze] step 5: save to supabase')
-        await db.from('reports').update({ raw_stats: stats, summary: fullSummary, status: 'completed' }).eq('id', report.id)
+        // Step 6: save
+        send({ type: 'step', step: 6, message: 'Сохраняем...' })
+        console.log('[analyze] step 6: save to supabase')
+        await db
+          .from('reports')
+          .update({
+            raw_stats: stats,
+            summary: fullRecommendation,
+            structured_report: structuredReport,
+            status: 'completed',
+          })
+          .eq('id', report.id)
 
         send({ type: 'done', id: report.id })
         console.log('[analyze] done')
