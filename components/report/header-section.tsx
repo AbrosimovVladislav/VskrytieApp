@@ -19,9 +19,9 @@ export function HeaderSection({ league, date, homeTeam, awayTeam, stadium, time 
       </p>
 
       <div className="flex items-center justify-between gap-3">
-        <span className="text-xl font-medium text-text text-center flex-1 truncate">{homeTeam}</span>
+        <span className="text-xl font-medium text-text text-center flex-1 min-w-0 break-words">{homeTeam}</span>
         <span className="text-sm font-medium text-muted shrink-0">VS</span>
-        <span className="text-xl font-medium text-text text-center flex-1 truncate">{awayTeam}</span>
+        <span className="text-xl font-medium text-text text-center flex-1 min-w-0 break-words">{awayTeam}</span>
       </div>
 
       {meta && (

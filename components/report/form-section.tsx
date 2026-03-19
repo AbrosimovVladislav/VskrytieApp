@@ -24,7 +24,7 @@ function countRecord(results: FormResult[]) {
 function FormRow({ team, results }: { team: string; results: FormResult[] }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-sm font-medium text-text w-24 truncate">{team}</span>
+      <span className="text-sm font-medium text-text w-28 shrink-0 leading-tight">{team}</span>
       <div className="flex items-center gap-1">
         {results.map((r, i) => (
           <div key={i} className={`w-3 h-3 rounded-full ${dotColor[r]}`} />
