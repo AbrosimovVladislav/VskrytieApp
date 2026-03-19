@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
 
         const { data: report, error: reportError } = await db
           .from('reports')
-          .insert({ query: context.matchQuery, telegram_user_id: telegramUserId ?? 0, status: 'pending' })
+          .insert({ query: context.matchQuery, telegram_user_id: telegramUserId ?? null, status: 'pending' })
           .select('id')
           .single()
 
