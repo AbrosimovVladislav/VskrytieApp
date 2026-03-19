@@ -1,4 +1,4 @@
-import { validate, parse } from '@telegram-apps/init-data-node'
+import { validate, parse } from '@tma.js/init-data-node'
 
 export interface TelegramInitData {
   user?: {
