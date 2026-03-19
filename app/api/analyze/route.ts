@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
 
         const { data: report, error: reportError } = await db
           .from('reports')
-          .insert({ query: context.matchQuery, telegram_user_id: telegramUserId ?? 0, status: 'processing' })
+          .insert({ query: context.matchQuery, telegram_user_id: telegramUserId ?? 0, status: 'pending' })
           .select('id')
           .single()
 
@@ -158,7 +158,7 @@ ${stats}
         // Step 5
         send({ type: 'step', step: 5, message: 'Сохраняем...' })
         console.log('[analyze] step 5: save to supabase')
-        await db.from('reports').update({ raw_stats: stats, summary: fullSummary, status: 'done' }).eq('id', report.id)
+        await db.from('reports').update({ raw_stats: stats, summary: fullSummary, status: 'completed' }).eq('id', report.id)
 
         send({ type: 'done', id: report.id })
         console.log('[analyze] done')
