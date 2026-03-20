@@ -12,14 +12,31 @@ import {
 
 type StepStatus = 'pending' | 'active' | 'done'
 type AppStatus = 'idle' | 'running' | 'done' | 'error'
+type Sport = 'football' | 'hockey' | 'basketball'
+
+const SPORTS: { id: Sport; emoji: string; label: string }[] = [
+  { id: 'football', emoji: '⚽', label: 'Футбол' },
+  { id: 'hockey', emoji: '🏒', label: 'Хоккей' },
+  { id: 'basketball', emoji: '🏀', label: 'Баскетбол' },
+]
 
 const STEPS = [
+  { id: 'search', label: 'Поиск' },
+  { id: 'fixture', label: 'Матч' },
+  { id: 'collect', label: 'Данные' },
+  { id: 'context', label: 'Контекст' },
+  { id: 'analyze', label: 'Анализ' },
+]
+
+// Fallback steps (Perplexity pipeline)
+const FALLBACK_STEPS = [
   { id: 'identify', label: 'Определяем' },
   { id: 'collect', label: 'Статистика' },
   { id: 'analyze', label: 'Аналитика' },
 ]
 
 const STEP_ORDER = STEPS.map(s => s.id)
+const FALLBACK_STEP_ORDER = FALLBACK_STEPS.map(s => s.id)
 
 type SectionName = 'context' | 'form' | 'stats' | 'injuries' | 'context_factors' | 'odds' | 'recommendation'
 
@@ -41,11 +58,13 @@ interface SectionData {
 
 export default function HomePage() {
   const [query, setQuery] = useState('')
+  const [sport, setSport] = useState<Sport>('football')
   const [status, setStatus] = useState<AppStatus>('idle')
   const [currentStep, setCurrentStep] = useState('')
   const [stepMessage, setStepMessage] = useState('')
   const [matchFound, setMatchFound] = useState<MatchFound | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isFallback, setIsFallback] = useState(false)
 
   const [sections, setSections] = useState<SectionData>({})
   const [visibleSections, setVisibleSections] = useState<Set<SectionName>>(new Set())
@@ -55,9 +74,12 @@ export default function HomePage() {
   const [isStreaming, setIsStreaming] = useState(false)
   const streamTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  const activeSteps = isFallback ? FALLBACK_STEPS : STEPS
+  const activeStepOrder = isFallback ? FALLBACK_STEP_ORDER : STEP_ORDER
+
   const getStepStatus = (stepId: string): StepStatus => {
-    const currentIdx = STEP_ORDER.indexOf(currentStep)
-    const stepIdx = STEP_ORDER.indexOf(stepId)
+    const currentIdx = activeStepOrder.indexOf(currentStep)
+    const stepIdx = activeStepOrder.indexOf(stepId)
     if (currentIdx < 0) return 'pending'
     if (stepIdx < currentIdx) return 'done'
     if (stepIdx === currentIdx) return 'active'
@@ -92,10 +114,11 @@ export default function HomePage() {
     if (!query.trim() || status === 'running') return
 
     setStatus('running')
-    setCurrentStep('identify')
+    setCurrentStep('search')
     setStepMessage('Запускаем...')
     setMatchFound(null)
     setError(null)
+    setIsFallback(false)
     setSections({})
     setVisibleSections(new Set())
     setStreamedSummary('')
@@ -106,7 +129,7 @@ export default function HomePage() {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: query.trim(), initData: 'dev' }),
+        body: JSON.stringify({ query: query.trim(), initData: 'dev', sport }),
       })
 
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
@@ -128,7 +151,10 @@ export default function HomePage() {
           try { event = JSON.parse(json) } catch { continue }
 
           if (event.type === 'step') {
-            setCurrentStep(event.step as string)
+            const step = event.step as string
+            // Detect Perplexity fallback by step name
+            if (step === 'identify') setIsFallback(true)
+            setCurrentStep(step)
             setStepMessage(event.message as string)
           } else if (event.type === 'match_found') {
             setMatchFound({
@@ -180,6 +206,25 @@ export default function HomePage() {
         <p className="text-sm text-muted">Аналитика матча — быстро и точно</p>
       </div>
 
+      {/* Sport selector */}
+      <div className="flex gap-2">
+        {SPORTS.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setSport(s.id)}
+            disabled={isRunning}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-[--radius-button] text-sm font-medium transition-all ${
+              sport === s.id
+                ? 'bg-accent text-bg-card-dark shadow-sm'
+                : 'bg-bg-card border border-border text-text-secondary hover:text-text'
+            } disabled:opacity-40`}
+          >
+            <span>{s.emoji}</span>
+            <span>{s.label}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Search */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3 bg-bg-card border border-border rounded-[--radius-button] px-4 py-3.5 shadow-[--shadow-light]">
@@ -208,7 +253,7 @@ export default function HomePage() {
       {(isRunning || status === 'done') && (
         <div className="rounded-[--radius-card] bg-bg-overlay border border-border px-4 py-4">
           <div className="flex items-start justify-between">
-            {STEPS.map((step, i) => {
+            {activeSteps.map((step, i) => {
               const s = getStepStatus(step.id)
               return (
                 <div key={step.id} className="flex items-center flex-1">
@@ -226,7 +271,7 @@ export default function HomePage() {
                       {step.label}
                     </span>
                   </div>
-                  {i < STEPS.length - 1 && (
+                  {i < activeSteps.length - 1 && (
                     <div className="flex-1 h-px mx-1 mb-5 bg-border-secondary overflow-hidden">
                       <div className={`h-full bg-accent transition-all duration-500 ${
                         s === 'done' ? 'w-full' : 'w-0'

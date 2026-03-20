@@ -2,7 +2,7 @@
 
 ---
 
-## POC — Proof of Concept
+## POC — Proof of Concept ✅
 
 **Цель**: Рабочий прототип — пользователь открывает бота, вводит запрос, получает отчёт.
 
@@ -26,64 +26,79 @@
 
 - ✅ Главный экран с полем ввода запроса
 - ✅ `POST /api/analyze` — SSE endpoint
-  - ❌ Реальная валидация Telegram initData (сейчас `'dev'`)
-  - ✅ Perplexity sonar — поиск матча + статистика
-  - ✅ Claude API (haiku-4-5) — генерация отчёта
-  - ✅ Стриминг через Server-Sent Events
-- ✅ Экран отчёта
+- ✅ Perplexity sonar — классификация запроса + поиск матча
+- ✅ Perplexity sonar-pro — сбор статистики
+- ✅ Claude API (haiku-4-5) — два вызова: MatchData JSON + AnalysisReport JSON
+- ✅ Стриминг через Server-Sent Events (3 шага + 7 секций)
+- ✅ Экран отчёта с 7 секциями
 - ✅ Сохранение в Supabase
 - ✅ Экран истории
 
 ### Phase 3 — Визуальный отчёт ✅
 
 - ✅ Типы `MatchData` + `AnalysisReport` + `FullReport` — двухчастная модель данных
-- ✅ Claude промпт → JSON output: MatchData (context, form, h2h, stats, injuries, contextFactors, odds) + AnalysisReport (5 секционных анализов + recommendation с bets)
-- ✅ Компоненты: Context (с мотивацией), Form+H2H (объединены), Stats (xG-перформанс + бары), Injuries (impact-иконки), ContextFactors (погода/судья/отдых), Odds (value-бейджи), Recommendation (confidence dots + bet-карточки)
+- ✅ Компоненты: Context, Form+H2H, Stats (xG-перформанс + бары), Injuries, ContextFactors, Odds (value-бейджи), Recommendation (confidence dots + bet-карточки)
 - ✅ Симуляция стриминга для recommendation summary
 - ✅ Skeleton states для 7 секций
 - ✅ Анимации появления секций (fade-in + slide-up)
 - ✅ Perplexity промпты расширены (xG, мотивация, судья, погода, трансферы)
-- ✅ SSE: 3 шага (identify/collect/analyze) + 7 секций
 
-> Дизайн: [`docs/ui-flow.md`](ui-flow.md) секции 3.0–3.6
-
-### Phase 4 — Полировка POC 🔲
-
-- ❌ Подключить реальный Telegram initData через `@tma.js/sdk-react`
-- ❌ Upsert пользователя при первом запуске
-- ❌ Счётчик оставшихся отчётов на главном экране
-- ❌ Skeleton placeholder при загрузке
-- ❌ Telegram тема (dark/light)
-- ❌ Haptic feedback на ключевых действиях
+> Секции отчёта: [`ui/report-sections.md`](ui/report-sections.md)
 
 ---
 
 ## MVP
 
-**Цель**: Монетизируемый продукт с оплатой и нормальным UX.
+**Цель**: Надёжные данные, авторизация, доведённый UI.
 
-### Phase 5 — Оплата: Telegram Stars 🔲
+### Phase 4 — Sports API: надёжные данные 🔲
 
-- ❌ Модель: N бесплатных отчётов, далее — Stars
-- ❌ `POST /api/payments/invoice` — создание инвойса
-- ❌ `POST /api/webhook` — `pre_checkout_query` и `successful_payment`
-- ❌ Обновление баланса в Supabase после оплаты
-- ❌ UI: экран покупки, счётчик отчётов
+Сейчас все данные через Perplexity — ненадёжно для точных цифр. Переходим на гибридный пайплайн (подробнее — [`arch/pipeline.md`](arch/pipeline.md)):
 
-### Phase 6 — Полировка MVP 🔲
+- ❌ Подключить API-Sports (api-sports.io) — бесплатный план, 100 запросов/день
+- ❌ `lib/sports-api/client.ts` — обёртка для API-Football, API-Hockey, API-Basketball
+- ❌ Шаг 1: Поиск матча через Sports API вместо Perplexity
+- ❌ Шаг 2: Структурированные данные параллельно (~10 запросов)
+- ❌ Шаг 3: Perplexity остаётся только для контекста (мотивация, ротация, судья, погода, трансферы)
+- ❌ `lib/calculations/metrics.ts` — расчёт производных метрик
+- ❌ Обновить `POST /api/analyze` — новый 5-шаговый пайплайн
+- ❌ Fallback: Sports API недоступен → Perplexity с пометкой о неточности
 
-- ❌ Onboarding для новых пользователей
-- ❌ Экран настроек
+### Phase 5 — UI по документации 🔲
+
+Довести фронтенд до состояния из спецификации (см. [`ui/overview.md`](ui/overview.md), [`ui/report-sections.md`](ui/report-sections.md), [`design.md`](design.md)):
+
+- ❌ Выбор спорта — табы ⚽🏒🏀 над полем ввода (сейчас спорт не выбирается)
+- ❌ Счётчик оставшихся отчётов на главном экране
+- ❌ Telegram тема (dark/light)
+- ❌ Haptic feedback на ключевых действиях
+- ❌ Аудит компонентов отчёта vs спецификация — привести к дизайну из [`design.md`](design.md)
+- ❌ Страница Balance (заглушка без оплаты)
+- ❌ Страница Settings
+
+### Phase 6 — Авторизация и пользователи 🔲
+
+Каждый пользователь видит свою историю и баланс:
+
+- ❌ Реальная валидация Telegram initData через `@tma.js/sdk-react` (сейчас `'dev'`)
+- ❌ Upsert пользователя в Supabase при первом запуске
+- ❌ Привязка отчётов к `telegram_user_id` — история только своя
+- ❌ Баланс `reports_remaining` — проверка перед генерацией, декремент после
+
+### Phase 7 — Полировка MVP 🔲
+
 - ❌ Error states и empty states (полный охват)
+- ❌ Onboarding для новых пользователей
 - ❌ Performance audit (bundle size, LCP)
+- ❌ Всё что осталось после Phase 4-6
 
 ---
 
-## Backlog
+## Post-MVP — Backlog
 
-- Оптимизация поискового флоу: TheSportsDB (расписание) + локальная классификация + Perplexity только для статистики → надёжность 60%→95%, стоимость -25%. [План](.claude/plans/magical-snacking-cocke.md)
+- Оплата: Telegram Stars (инвойсы, webhook, пакеты)
 - Push-уведомления через Telegram Bot
 - Избранные команды
 - Экспорт отчёта в PDF
-- Поддержка нескольких видов спорта (хоккей, теннис, баскетбол)
-
+- Расширение спортов (теннис — отдельный API)
+- xG из платного API (Sportmonks) вместо Perplexity
