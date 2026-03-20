@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { classifyQuery, findNextMatch, fetchMatchStats, fetchMatchData } from '@/lib/openai/client'
 import { createServiceClient } from '@/lib/supabase/server'
 import { validateTelegramInitData } from '@/lib/telegram/validate'
-import { MatchReport } from '@/lib/types/report'
+import type { MatchData, AnalysisReport, FullReport } from '@/lib/types/report'
 
 export const maxDuration = 120
 
@@ -51,9 +51,9 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Step 1: classify query
-        send({ type: 'step', step: 1, message: 'Определяем запрос...' })
-        console.log('[analyze] step 1: classifyQuery')
+        // ── Step 1: Identify ──
+        send({ type: 'step', step: 'identify', message: 'Определяем матч...' })
+        console.log('[analyze] step: identify')
         const context = await classifyQuery(query)
         console.log('[analyze] context:', JSON.stringify(context))
 
@@ -65,9 +65,7 @@ export async function POST(req: NextRequest) {
           })
         }
 
-        // Step 2: create report in supabase
-        send({ type: 'step', step: 2, message: 'Создаём отчёт...' })
-        console.log('[analyze] step 2: create report')
+        // Create report in Supabase
         const db = createServiceClient()
 
         if (telegramUserId) {
@@ -94,38 +92,34 @@ export async function POST(req: NextRequest) {
         console.log('[analyze] report created, id:', report.id)
         send({ type: 'id', id: report.id })
 
-        // Step 3: fetch match data + stats from Perplexity
+        // ── Step 2: Collect ──
+        send({ type: 'step', step: 'collect', message: 'Собираем статистику...' })
+        console.log('[analyze] step: collect')
+
         let stats: string
         let claudeContext: string
 
         if (context.isTeam && context.teamName) {
-          // 3a: Two parallel sonar calls to find & verify next match
-          send({ type: 'step', step: 3, message: 'Ищем ближайший матч...' })
-          console.log('[analyze] step 3a: findNextMatch')
           const match = await findNextMatch(context.teamName, context.sport)
           console.log('[analyze] match found:', JSON.stringify(match))
 
-          // 3b: Detailed stats via sonar-pro with verified match
-          send({ type: 'step', step: 3, message: `${match.teamA} vs ${match.teamB} — собираем статистику...` })
-          console.log('[analyze] step 3b: fetchMatchStats')
+          send({ type: 'step', step: 'collect', message: `${match.teamA} vs ${match.teamB} — собираем данные...` })
           stats = await fetchMatchStats(match)
           console.log('[analyze] stats length:', stats.length)
 
           claudeContext = `Матч: ${match.teamA} vs ${match.teamB}, ${match.date}, ${match.league}. Арена: ${match.venue}, время: ${match.time}. Анализируй именно этот матч.`
         } else {
-          send({ type: 'step', step: 3, message: 'Ищем статистику...' })
-          console.log('[analyze] step 3: fetchMatchData (direct match)')
           stats = await fetchMatchData(query, false)
           console.log('[analyze] stats length:', stats.length)
-
           claudeContext = `Пользователь запросил анализ матча: "${query}".`
         }
 
-        // Step 4: Claude structured JSON call (non-streaming)
-        send({ type: 'step', step: 4, message: 'Структурируем данные...' })
-        console.log('[analyze] step 4: claude structured JSON')
+        // ── Step 3: Analyze ──
+        send({ type: 'step', step: 'analyze', message: 'Анализируем данные...' })
+        console.log('[analyze] step: analyze — Claude structured JSON')
 
-        const structuredPrompt = `Ты — профессиональный аналитик для беттинга. ${claudeContext}
+        // ── Claude Call 1: MatchData JSON (non-streaming) ──
+        const matchDataPrompt = `Ты — профессиональный аналитик для беттинга. ${claudeContext}
 
 ВАЖНО: Анализируй ОБЯЗАТЕЛЬНО ОБЕ команды равноценно. Форма, голы, травмы — для каждой команды отдельно. Не игнорируй ни одну из сторон.
 
@@ -134,68 +128,107 @@ ${stats}
 
 Верни ТОЛЬКО валидный JSON в следующем формате (без markdown, без объяснений):
 {
-  "header": {
-    "league": "название лиги",
-    "date": "дата матча",
+  "context": {
+    "sport": "football",
     "homeTeam": "полное название хозяев",
     "awayTeam": "полное название гостей",
-    "stadium": "стадион (если известен)",
-    "time": "время матча (если известно)"
+    "competition": "название лиги/турнира",
+    "round": "Тур N или стадия плей-офф (если известно)",
+    "date": "дата матча",
+    "time": "время (если известно)",
+    "venue": "стадион (если известен)",
+    "motivation": {
+      "home": { "level": "high/medium/low", "reason": "Борьба за чемпионство" },
+      "away": { "level": "high/medium/low", "reason": "Борьба за выживание" }
+    }
   },
   "form": {
-    "home": ["W","D","L","W","W"],
-    "away": ["L","W","W","D","L"],
-    "homeAtHome": ["W","W","W","W","W"],
-    "awayAway": ["L","W","D","L","W"]
-  },
-  "stats": [
-    {"label": "Голов забито (5 матчей)", "homeValue": 8, "awayValue": 6},
-    {"label": "Голов пропущено (5 матчей)", "homeValue": 3, "awayValue": 5},
-    {"label": "Средний xG", "homeValue": 1.8, "awayValue": 1.4, "unit": "xG"}
-  ],
-  "injuries": {
-    "homeOk": true,
-    "awayOk": false,
-    "home": [],
-    "away": [
-      {"name": "Промес", "position": "Нападающий", "reason": "травма", "duration": "сезон"}
-    ]
+    "home": {
+      "last5": ["W","D","L","W","W"],
+      "streak": "2W",
+      "homeRecord": ["W","W","D","W","L"]
+    },
+    "away": {
+      "last5": ["L","W","W","D","L"],
+      "streak": "1L",
+      "awayRecord": ["L","W","D","L","W"]
+    }
   },
   "h2h": {
     "homeWins": 7,
     "awayWins": 3,
     "draws": 2,
-    "matches": [
-      {"date": "15 окт 25", "homeTeam": "ЦСКА", "score": "2:1", "awayTeam": "Спартак"}
+    "recentGames": [
+      {"date": "15 окт 2025", "score": "2:1", "competition": "РПЛ"}
+    ]
+  },
+  "stats": {
+    "home": {
+      "goalsScored": 1.6,
+      "goalsConceded": 0.8,
+      "xG": 1.5,
+      "xGA": 0.9,
+      "shotsOnTarget": 4.2,
+      "possession": 55,
+      "corners": 5.4,
+      "yellowCards": 1.8,
+      "cleanSheets": 3,
+      "bttsPct": 55,
+      "over25Pct": 60
+    },
+    "away": {
+      "goalsScored": 1.2,
+      "goalsConceded": 1.4,
+      "xG": 1.1,
+      "xGA": 1.3,
+      "shotsOnTarget": 3.5,
+      "possession": 48,
+      "corners": 4.1,
+      "yellowCards": 2.2,
+      "cleanSheets": 1,
+      "bttsPct": 65,
+      "over25Pct": 70
+    }
+  },
+  "injuries": {
+    "home": [
+      {"name": "Игрок", "role": "Нападающий", "reason": "injury", "details": "травма колена, до конца сезона", "impact": "key"}
     ],
-    "homeGroundRecord": "4П 0Н 1П"
+    "away": []
+  },
+  "contextFactors": {
+    "weather": {"temp": 5, "condition": "облачно"},
+    "restDays": {"home": 5, "away": 3},
+    "referee": {"name": "Иванов И.И.", "avgYellowCards": 4.2, "penaltiesPerGame": 0.3},
+    "recentTransfers": ["Новичок перешёл в команду А"]
   },
   "odds": {
     "bookmakers": [
-      {"name": "Фонбет", "home": 1.85, "draw": 3.40, "away": 4.20}
+      {"name": "Фонбет", "values": {"П1": 1.85, "X": 3.40, "П2": 4.20}},
+      {"name": "Бетсити", "values": {"П1": 1.90, "X": 3.35, "П2": 4.10}}
     ]
   }
 }
 
 СТРОГИЕ ПРАВИЛА:
 - homeTeam и awayTeam — ПОЛНЫЕ названия (не обрезай).
-- form.home и form.away — ОБЯЗАТЕЛЬНО по 5 результатов для КАЖДОЙ команды. Ноль результатов = ОШИБКА.
-- stats — ОБЯЗАТЕЛЬНО homeValue > 0 и awayValue > 0 для каждой позиции. 3-4 позиции.
+- form.home.last5 и form.away.last5 — ОБЯЗАТЕЛЬНО по 5 результатов для КАЖДОЙ команды. Ноль результатов = ОШИБКА.
+- stats.home и stats.away — goalsScored и goalsConceded > 0. Это средние значения за последние 5-10 матчей.
+- xG/xGA — если данные есть, укажи. Если нет — поставь null.
+- injuries — пустой массив если нет травм. impact обязательно для каждого: "key" (основной состав), "rotation" (ротация), "minor" (молодёжь/запас).
+- contextFactors — weather null если крытый стадион. referee null если не найден. recentTransfers пустой массив если нет.
+- odds.bookmakers — минимум 1 букмекер. values — минимум П1, X, П2.
+- motivation — ОБЯЗАТЕЛЬНО для обеих команд. level: "high" (борьба за титул/выживание), "medium" (еврокубки/середина), "low" (ничего на кону).
 - Если Perplexity не дал данные по одной команде — оцени на основе уровня команды в лиге, не оставляй пустым.
-- Если матч из данных Perplexity выглядит нереальным или не найден в календаре — используй тот матч, который точно есть в расписании.`
+- sport: "football", "hockey", "basketball" или "tennis".`
 
-        let structuredReport: MatchReport | null = null
+        let matchData: MatchData | null = null
 
         try {
           const structuredResponse = await anthropic.messages.create({
             model: 'claude-haiku-4-5-20251001',
-            max_tokens: 2048,
-            messages: [
-              {
-                role: 'user',
-                content: structuredPrompt,
-              },
-            ],
+            max_tokens: 4096,
+            messages: [{ role: 'user', content: matchDataPrompt }],
           })
 
           const rawText = structuredResponse.content
@@ -203,72 +236,133 @@ ${stats}
             .map((block) => (block as { type: 'text'; text: string }).text)
             .join('')
 
-          console.log('[analyze] structured raw length:', rawText.length)
+          console.log('[analyze] matchData raw length:', rawText.length)
 
-          // Strip possible markdown code fences before parsing
           const jsonText = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+          matchData = JSON.parse(jsonText) as MatchData
 
-          structuredReport = JSON.parse(jsonText) as MatchReport
-
-          // Emit section events
-          const sections: (keyof MatchReport)[] = ['header', 'form', 'stats', 'injuries', 'h2h', 'odds']
-          for (const section of sections) {
-            if (structuredReport[section] !== undefined) {
-              send({ type: 'section', section, data: structuredReport[section] })
-            }
-          }
+          // Emit sections that come from MatchData
+          send({ type: 'section', section: 'context', data: matchData.context })
+          send({ type: 'section', section: 'form', data: { form: matchData.form, h2h: matchData.h2h } })
         } catch (parseErr) {
-          console.error('[analyze] structured JSON parse error:', parseErr)
-          send({ type: 'error', message: 'Ошибка разбора данных' })
-          // Continue — we can still do the recommendation stream without structured data
+          console.error('[analyze] matchData JSON parse error:', parseErr)
+          send({ type: 'error', message: 'Ошибка разбора данных матча' })
         }
 
-        // Step 5: Claude recommendation (streaming)
-        send({ type: 'step', step: 5, message: 'Генерируем рекомендацию...' })
-        console.log('[analyze] step 5: claude recommendation stream')
+        // ── Claude Call 2: AnalysisReport JSON (non-streaming) ──
+        console.log('[analyze] Claude analysis report')
 
-        const recommendationPrompt = `Ты — профессиональный аналитик для беттинга. ${claudeContext}
+        const analysisPrompt = `Ты — профессиональный аналитик для беттинга. ${claudeContext}
 
-Структурированный анализ:
-${JSON.stringify(structuredReport)}
+Структурированные данные матча:
+${JSON.stringify(matchData)}
 
-ВСЕГДА давай прогноз на основе имеющихся данных. Никогда не отказывайся и не говори что данных недостаточно.
+На основе этих данных сгенерируй аналитический отчёт. ВСЕГДА давай прогноз на основе имеющихся данных. Никогда не отказывайся и не говори что данных недостаточно.
 
-Дай СРАВНИТЕЛЬНУЮ аналитику ОБЕИХ команд. Максимум 80-100 слов. Формат:
-- Больше конкретных фактов и цифр, меньше воды.
-- Сравни форму, статистику, очные встречи обеих команд.
-- Закончи одним чётким выводом (прогноз/ставка).
-Без списков, связный текст. Русский язык.`
+Верни ТОЛЬКО валидный JSON (без markdown, без объяснений):
+{
+  "sections": {
+    "formAnalysis": "2-3 предложения: оценка формы обеих команд + учёт H2H. Конкретные факты.",
+    "statsAnalysis": "2-3 предложения: xG-инсайт, сравнение ключевых метрик. Цифры обязательны.",
+    "injuriesAnalysis": "1-2 предложения: влияние потерь на расклад сил.",
+    "contextAnalysis": "1-2 предложения: погода, усталость, судья — если влияют.",
+    "oddsAnalysis": "1-2 предложения: оценка линий, есть ли value."
+  },
+  "odds": {
+    "average": {"П1": 1.87, "X": 3.37, "П2": 4.15},
+    "bestValue": {"market": "П1", "bookmaker": "Бетсити", "odds": 1.90},
+    "valueAssessment": [
+      {"market": "П1", "indicator": "underpriced"},
+      {"market": "X", "indicator": "fair"},
+      {"market": "П2", "indicator": "overpriced"}
+    ]
+  },
+  "recommendation": {
+    "summary": "1-2 предложения: главный вывод, чёткий прогноз. Сравнительно, с цифрами.",
+    "confidence": "high/medium/low",
+    "bets": [
+      {
+        "market": "П1",
+        "reasoning": "Одно предложение — почему этот рынок.",
+        "confidence": "high/medium/low",
+        "value": "underpriced/fair/overpriced"
+      }
+    ]
+  }
+}
 
-        const claudeStream = anthropic.messages.stream({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 300,
-          messages: [
-            {
-              role: 'user',
-              content: recommendationPrompt,
+ПРАВИЛА:
+- sections — каждый текст на русском, связный, с конкретными цифрами и фактами. Не лей воду.
+- odds.average — средние коэффициенты из данных букмекеров.
+- odds.valueAssessment — для каждого основного рынка (П1, X, П2). "underpriced" = реальная вероятность выше коэффициента.
+- recommendation.bets — от 1 до 3 рынков. Доступные: 1X2, тотал (Б/М), BTTS, фора, угловые (Б/М), карточки (Б/М).
+- recommendation.confidence — общая уверенность в прогнозе.
+- recommendation.summary — СРАВНИТЕЛЬНАЯ аналитика ОБЕИХ команд. Максимум 80-100 слов.`
+
+        let analysisReport: AnalysisReport | null = null
+
+        try {
+          const analysisResponse = await anthropic.messages.create({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 1500,
+            messages: [{ role: 'user', content: analysisPrompt }],
+          })
+
+          const rawAnalysis = analysisResponse.content
+            .filter((block) => block.type === 'text')
+            .map((block) => (block as { type: 'text'; text: string }).text)
+            .join('')
+
+          console.log('[analyze] analysis raw length:', rawAnalysis.length)
+
+          const analysisJson = rawAnalysis.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+          analysisReport = JSON.parse(analysisJson) as AnalysisReport
+
+          // Emit remaining sections with analysis texts
+          send({
+            type: 'section', section: 'stats',
+            data: { stats: matchData?.stats, analysis: analysisReport.sections.statsAnalysis },
+          })
+          send({
+            type: 'section', section: 'injuries',
+            data: { injuries: matchData?.injuries, analysis: analysisReport.sections.injuriesAnalysis },
+          })
+          send({
+            type: 'section', section: 'context_factors',
+            data: { contextFactors: matchData?.contextFactors, analysis: analysisReport.sections.contextAnalysis },
+          })
+          send({
+            type: 'section', section: 'odds',
+            data: {
+              bookmakers: matchData?.odds?.bookmakers,
+              oddsAnalysis: analysisReport.odds,
+              analysis: analysisReport.sections.oddsAnalysis,
             },
-          ],
-        })
+          })
 
-        let fullRecommendation = ''
-        for await (const event of claudeStream) {
-          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-            fullRecommendation += event.delta.text
-            send({ type: 'chunk', content: event.delta.text })
-          }
+          // Emit recommendation — summary will be "streamed" on client side
+          send({
+            type: 'section', section: 'recommendation',
+            data: analysisReport.recommendation,
+          })
+        } catch (parseErr) {
+          console.error('[analyze] analysis JSON parse error:', parseErr)
+          send({ type: 'error', message: 'Ошибка разбора аналитики' })
         }
-        console.log('[analyze] recommendation done, length:', fullRecommendation.length)
 
-        // Step 6: save
-        send({ type: 'step', step: 6, message: 'Сохраняем...' })
-        console.log('[analyze] step 6: save to supabase')
+        // ── Save to Supabase ──
+        console.log('[analyze] saving to supabase')
+
+        const fullReport: FullReport | null = matchData && analysisReport
+          ? { matchData, analysis: analysisReport }
+          : null
+
         await db
           .from('reports')
           .update({
             raw_stats: stats,
-            summary: fullRecommendation,
-            structured_report: JSON.parse(JSON.stringify(structuredReport)),
+            summary: analysisReport?.recommendation?.summary ?? '',
+            structured_report: fullReport ? JSON.parse(JSON.stringify(fullReport)) : null,
             status: 'completed',
           })
           .eq('id', report.id)

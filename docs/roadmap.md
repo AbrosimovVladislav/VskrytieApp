@@ -34,14 +34,16 @@
 - ✅ Сохранение в Supabase
 - ✅ Экран истории
 
-### Phase 3 — Визуальный отчёт 🔲
+### Phase 3 — Визуальный отчёт ✅
 
-- ❌ Типы `MatchReport` — структурированный JSON от Claude вместо markdown
-- ❌ Claude промпт → JSON output с секциями (header, form, stats, injuries, h2h, odds, recommendation)
-- ❌ Компоненты отчёта: Header, Form (точки W/L/D), KeyStats (сравнительные бары), Injuries (карточки), H2H (таблица + пропорц. бар), Odds (таблица коэфф.)
-- ❌ RecommendationSection — стриминг с typing-эффектом
-- ❌ Skeleton states для каждой секции
-- ❌ Анимации появления секций (fade-in + slide-up)
+- ✅ Типы `MatchData` + `AnalysisReport` + `FullReport` — двухчастная модель данных
+- ✅ Claude промпт → JSON output: MatchData (context, form, h2h, stats, injuries, contextFactors, odds) + AnalysisReport (5 секционных анализов + recommendation с bets)
+- ✅ Компоненты: Context (с мотивацией), Form+H2H (объединены), Stats (xG-перформанс + бары), Injuries (impact-иконки), ContextFactors (погода/судья/отдых), Odds (value-бейджи), Recommendation (confidence dots + bet-карточки)
+- ✅ Симуляция стриминга для recommendation summary
+- ✅ Skeleton states для 7 секций
+- ✅ Анимации появления секций (fade-in + slide-up)
+- ✅ Perplexity промпты расширены (xG, мотивация, судья, погода, трансферы)
+- ✅ SSE: 3 шага (identify/collect/analyze) + 7 секций
 
 > Дизайн: [`docs/ui-flow.md`](ui-flow.md) секции 3.0–3.6
 

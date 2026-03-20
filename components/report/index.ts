@@ -1,16 +1,16 @@
-export { HeaderSection } from './header-section'
+export { ContextSection } from './context-section'
 export { FormSection } from './form-section'
 export { StatsSection } from './stats-section'
 export { InjuriesSection } from './injuries-section'
-export { H2HSection } from './h2h-section'
+export { ContextFactorsSection } from './context-factors-section'
 export { OddsSection } from './odds-section'
 export { RecommendationSection } from './recommendation-section'
 export {
-  HeaderSkeleton,
+  ContextSkeleton,
   FormSkeleton,
   StatsSkeleton,
   InjuriesSkeleton,
-  H2HSkeleton,
+  ContextFactorsSkeleton,
   OddsSkeleton,
   RecommendationSkeleton,
 } from './section-skeleton'

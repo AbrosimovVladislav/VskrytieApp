@@ -2,10 +2,10 @@
 
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { MatchReport } from '@/lib/types/report'
+import type { FullReport } from '@/lib/types/report'
 import {
-  HeaderSection, FormSection, StatsSection, InjuriesSection,
-  H2HSection, OddsSection, RecommendationSection,
+  ContextSection, FormSection, StatsSection, InjuriesSection,
+  ContextFactorsSection, OddsSection, RecommendationSection,
 } from '@/components/report'
 
 interface ReportViewProps {
@@ -13,13 +13,14 @@ interface ReportViewProps {
   date: string
   status: string
   summary: string | null
-  structured: MatchReport | null
+  structured: FullReport | null
+  legacySummary?: string | null | undefined
 }
 
-export function ReportView({ query, date, status, summary, structured }: ReportViewProps) {
+export function ReportView({ query, date, status, summary, structured, legacySummary }: ReportViewProps) {
   const router = useRouter()
 
-  // Fallback: no structured data yet
+  // Fallback: no structured data (old format or still processing)
   if (!structured) {
     return (
       <div className="flex flex-col px-4 pt-8 gap-5 pb-28">
@@ -36,16 +37,18 @@ export function ReportView({ query, date, status, summary, structured }: ReportV
             Отчёт ещё формируется…
           </div>
         )}
-        {summary && (
+        {(summary || legacySummary) && (
           <div className="rounded-[--radius-card] bg-bg-card border border-border px-4 py-4">
-            <div className="text-sm leading-relaxed text-text whitespace-pre-wrap">{summary}</div>
+            <div className="text-sm leading-relaxed text-text whitespace-pre-wrap">{summary || legacySummary}</div>
           </div>
         )}
       </div>
     )
   }
 
-  const { header, form, stats, injuries, h2h, odds } = structured
+  const { matchData, analysis } = structured
+  const homeTeam = matchData.context.homeTeam
+  const awayTeam = matchData.context.awayTeam
 
   return (
     <div className="flex flex-col px-4 pt-8 gap-4 pb-28">
@@ -54,54 +57,44 @@ export function ReportView({ query, date, status, summary, structured }: ReportV
         Назад
       </button>
 
-      <HeaderSection {...header} />
+      <ContextSection context={matchData.context} />
 
-      {form && (
-        <FormSection
-          homeTeam={header.homeTeam}
-          awayTeam={header.awayTeam}
-          home={form.home}
-          away={form.away}
-        />
-      )}
+      <FormSection
+        homeTeam={homeTeam}
+        awayTeam={awayTeam}
+        form={matchData.form}
+        h2h={matchData.h2h}
+        analysis={analysis.sections.formAnalysis}
+      />
 
-      {stats && stats.length > 0 && (
-        <StatsSection
-          homeTeam={header.homeTeam}
-          awayTeam={header.awayTeam}
-          stats={stats}
-        />
-      )}
+      <StatsSection
+        homeTeam={homeTeam}
+        awayTeam={awayTeam}
+        home={matchData.stats.home}
+        away={matchData.stats.away}
+        analysis={analysis.sections.statsAnalysis}
+      />
 
-      {injuries && (
-        <InjuriesSection
-          homeTeam={header.homeTeam}
-          awayTeam={header.awayTeam}
-          homeOk={injuries.homeOk}
-          awayOk={injuries.awayOk}
-          home={injuries.home}
-          away={injuries.away}
-        />
-      )}
+      <InjuriesSection
+        homeTeam={homeTeam}
+        awayTeam={awayTeam}
+        home={matchData.injuries.home}
+        away={matchData.injuries.away}
+        analysis={analysis.sections.injuriesAnalysis}
+      />
 
-      {h2h && (
-        <H2HSection
-          homeTeam={header.homeTeam}
-          awayTeam={header.awayTeam}
-          homeWins={h2h.homeWins}
-          awayWins={h2h.awayWins}
-          draws={h2h.draws}
-          matches={h2h.matches}
-        />
-      )}
+      <ContextFactorsSection
+        contextFactors={matchData.contextFactors}
+        analysis={analysis.sections.contextAnalysis}
+      />
 
-      {odds && odds.bookmakers.length > 0 && (
-        <OddsSection bookmakers={odds.bookmakers} />
-      )}
+      <OddsSection
+        bookmakers={matchData.odds.bookmakers}
+        oddsAnalysis={analysis.odds}
+        analysis={analysis.sections.oddsAnalysis}
+      />
 
-      {summary && (
-        <RecommendationSection text={summary} />
-      )}
+      <RecommendationSection recommendation={analysis.recommendation} />
     </div>
   )
 }
