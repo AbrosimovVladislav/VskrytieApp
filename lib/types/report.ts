@@ -69,7 +69,7 @@ export interface BookmakerOdds {
 
 export interface MatchData {
   context: {
-    sport: 'football' | 'hockey' | 'basketball' | 'tennis'
+    sport: 'football' | 'hockey' | 'basketball'
     homeTeam: string
     awayTeam: string
     competition: string       // "РПЛ", "КХЛ"
