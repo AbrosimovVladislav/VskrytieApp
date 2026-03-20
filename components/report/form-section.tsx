@@ -23,6 +23,16 @@ function countRecord(results: FormResult[]) {
 }
 
 function FormRow({ team, results, streak }: { team: string; results: FormResult[]; streak?: string }) {
+  if (!results.length) {
+    return (
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium text-text w-28 shrink-0 leading-tight">{team}</span>
+        <span className="text-xs text-muted">нет данных</span>
+        <div className="w-20" />
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-sm font-medium text-text w-28 shrink-0 leading-tight">{team}</span>

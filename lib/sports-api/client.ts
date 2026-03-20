@@ -183,10 +183,11 @@ export async function searchTeamsHockey(name: string) {
   )
 }
 
-export async function getGamesHockey(teamId: number, next?: number, last?: number) {
+export async function getGamesHockey(teamId: number, next?: number, last?: number, season?: number) {
   const params: Record<string, string | number> = { team: teamId }
   if (next) params.next = next
   if (last) params.last = last
+  if (season) params.season = season
   return apiFetch<ApiGame>('hockey', '/games', params)
 }
 
@@ -210,10 +211,11 @@ export async function searchTeamsBasketball(name: string) {
   )
 }
 
-export async function getGamesBasketball(teamId: number, next?: number, last?: number) {
+export async function getGamesBasketball(teamId: number, next?: number, last?: number, season?: string) {
   const params: Record<string, string | number> = { team: teamId }
   if (next) params.next = next
   if (last) params.last = last
+  if (season) params.season = season
   return apiFetch<ApiGame>('basketball', '/games', params)
 }
 

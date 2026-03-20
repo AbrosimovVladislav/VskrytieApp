@@ -240,8 +240,12 @@ async function buildGameMatchData(
   const getH2H = isHockey ? getH2HHockey : getH2HBasketball
 
   const [homeLast, awayLast, h2h] = await Promise.all([
-    getGames(homeId, undefined, 10),
-    getGames(awayId, undefined, 10),
+    isHockey
+      ? getGamesHockey(homeId, undefined, 10, season)
+      : getGamesBasketball(homeId, undefined, 10, String(season)),
+    isHockey
+      ? getGamesHockey(awayId, undefined, 10, season)
+      : getGamesBasketball(awayId, undefined, 10, String(season)),
     getH2H(homeId, awayId, 5),
   ])
 

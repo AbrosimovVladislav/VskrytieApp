@@ -83,7 +83,7 @@ function StatBar({ label, homeValue, awayValue, invertAccent }: BarProps) {
 }
 
 export function StatsSection({ home, away, homeTeam, awayTeam, analysis }: StatsSectionProps) {
-  const bars: BarProps[] = [
+  const allBars: BarProps[] = [
     { label: 'Голов забито (ср.)', homeValue: home.goalsScored, awayValue: away.goalsScored },
     { label: 'Голов пропущено (ср.)', homeValue: home.goalsConceded, awayValue: away.goalsConceded, invertAccent: true },
     { label: 'Удары в створ (ср.)', homeValue: home.shotsOnTarget, awayValue: away.shotsOnTarget },
@@ -91,6 +91,8 @@ export function StatsSection({ home, away, homeTeam, awayTeam, analysis }: Stats
     { label: 'BTTS %', homeValue: home.bttsPct, awayValue: away.bttsPct },
     { label: 'Тотал Б2.5 %', homeValue: home.over25Pct, awayValue: away.over25Pct },
   ]
+  // Hide bars where both values are 0 (e.g. hockey has no shots/possession data)
+  const bars = allBars.filter(b => b.homeValue > 0 || b.awayValue > 0)
 
   return (
     <div className="rounded-[--radius-card] bg-bg-card border border-border-card p-5 shadow-[--shadow-card]">
