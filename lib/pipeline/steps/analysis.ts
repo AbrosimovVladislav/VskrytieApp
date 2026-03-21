@@ -23,73 +23,55 @@ interface AnalysisInput {
 
 export async function runAnalysis(input: AnalysisInput): Promise<AnalysisReport> {
   // TODO: Phase 4 — real Claude API request
-  await delay(1000);
+  await delay(500);
+
+  const { match, motivation, form, h2h, stats, squadContext, odds } = input;
 
   return {
     match: {
-      team1: input.match.team1,
-      team2: input.match.team2,
-      date: input.match.date,
-      time: input.match.time,
-      venue: input.match.venue,
-      league: input.match.league,
+      team1: match.team1,
+      team2: match.team2,
+      date: match.date,
+      time: match.time,
+      venue: match.venue,
+      league: match.league,
     },
     motivation: {
       data: {
-        team1: `${input.motivation.team1.position}, ${input.motivation.team1.fighting_for.toLowerCase()}`,
-        team2: `${input.motivation.team2.position}, ${input.motivation.team2.fighting_for.toLowerCase()}`,
+        team1: `${motivation.team1.position}, ${motivation.team1.fighting_for.toLowerCase()}`,
+        team2: `${motivation.team2.position}, ${motivation.team2.fighting_for.toLowerCase()}`,
       },
       analysis: "Анализ мотивации будет доступен после подключения Claude (фаза 4)",
     },
     form: {
       data: {
-        team1_last5: input.form.team1_last5,
-        team2_last5: input.form.team2_last5,
+        team1_last5: form.team1_last5,
+        team2_last5: form.team2_last5,
       },
       analysis: "Анализ формы будет доступен после подключения Claude (фаза 4)",
     },
     h2h: {
-      data: { games: input.h2h.games },
-      analysis:
-        "В трёх встречах сезона счёт 2:1 в пользу ЦСКА. Оба домашних матча ЦСКА выиграли.",
+      data: { games: h2h.games },
+      analysis: "Анализ H2H будет доступен после подключения Claude (фаза 4)",
     },
     stats: {
-      data: { team1: input.stats.team1, team2: input.stats.team2 },
-      analysis:
-        "СКА лидирует по ключевым показателям, но ЦСКА сильнее в реализации большинства (24.1% vs 26.3%).",
+      data: { team1: stats.team1, team2: stats.team2 },
+      analysis: "Анализ статистики будет доступен после подключения Claude (фаза 4)",
     },
     context: {
       data: {
-        team1: "Травма Окулова ослабляет атаку, но основной состав в строю.",
-        team2: "Все лидеры здоровы, связка Шипачёв—Ткачёв в ударе.",
+        team1: `${squadContext.team1.injuries}. ${squadContext.team1.media_summary}`,
+        team2: `${squadContext.team2.injuries}. ${squadContext.team2.media_summary}`,
       },
-      analysis:
-        "Кадровое преимущество на стороне СКА. Потеря Окулова для ЦСКА ощутима, но не критична.",
+      analysis: "Анализ контекста будет доступен после подключения Claude (фаза 4)",
     },
     odds: {
-      data: { bookmakers: input.odds.bookmakers },
-      analysis:
-        "Букмекеры дают ЦСКА лёгкое преимущество как хозяевам (≈2.10). Тотал 4.5 — баланс в пользу меньше.",
+      data: { bookmakers: odds.bookmakers },
+      analysis: "Анализ коэффициентов будет доступен после подключения Claude (фаза 4)",
     },
     recommendation: {
-      summary:
-        "ЦСКА дома с высокой мотивацией и преимуществом в личных встречах. СКА сильнее по статистике, но без давления. Ожидаем плотный матч с небольшим перевесом хозяев.",
-      bets: [
-        {
-          market: "Исход в основное время",
-          pick: "П1",
-          confidence: "medium",
-          reasoning:
-            "ЦСКА дома сильны, мотивация выше, преимущество в H2H. Но СКА объективно сильнее по составу.",
-        },
-        {
-          market: "Тотал",
-          pick: "Меньше 4.5",
-          confidence: "medium",
-          reasoning:
-            "Оба клуба хороши в обороне (2.2 и 2.0 пропущенных в среднем). В плей-офф стиле матчи обычно закрытые.",
-        },
-      ],
+      summary: "Рекомендация будет доступна после подключения Claude (фаза 4)",
+      bets: [],
     },
   };
 }

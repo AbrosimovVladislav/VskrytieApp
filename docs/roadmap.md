@@ -51,22 +51,25 @@
 ### 3.2 — Форма команд (шаг 3) ✅
 - ✅ `lib/pipeline/steps/form.ts` — Perplexity → парсинг → `FormData`
 - ✅ Передача реальных данных в UI через `analysis.ts`
+- ⚠️ **→ Sports API (фаза 6)**: Perplexity выдаёт неверные счета матчей
 
-### 3.3 — H2H (шаг 4)
-- ⬜ `lib/pipeline/steps/h2h.ts` — Perplexity → парсинг → `H2HData`
-- ⬜ Передача реальных данных в UI через `analysis.ts`
+### 3.3 — H2H (шаг 4) ✅
+- ✅ `lib/pipeline/steps/h2h.ts` — Perplexity → парсинг → `H2HData`
+- ✅ Передача реальных данных в UI через `analysis.ts`
+- ⚠️ **→ Sports API (фаза 6)**: точные счета встреч нужны из API
 
-### 3.4 — Статистика сезона (шаг 5)
-- ⬜ `lib/pipeline/steps/stats.ts` — `statsFields` из конфига → Perplexity → `StatsData`
-- ⬜ Передача реальных данных в UI через `analysis.ts`
+### 3.4 — Статистика сезона (шаг 5) ✅
+- ✅ `lib/pipeline/steps/stats.ts` — `statsFields` из конфига → Perplexity → `StatsData`
+- ✅ Передача реальных данных в UI через `analysis.ts`
+- ⚠️ **→ Sports API (фаза 6)**: точные цифры статистики нужны из API
 
-### 3.5 — Кадры и контекст (шаг 6)
-- ⬜ `lib/pipeline/steps/squad-context.ts` — Perplexity → парсинг → `SquadContextData`
-- ⬜ Передача реальных данных в UI через `analysis.ts`
+### 3.5 — Кадры и контекст (шаг 6) ✅
+- ✅ `lib/pipeline/steps/squad-context.ts` — Perplexity → парсинг → `SquadContextData`
+- ✅ Передача реальных данных в UI через `analysis.ts`
 
-### 3.6 — Букмекерские линии (шаг 7)
-- ⬜ `lib/pipeline/steps/odds.ts` — букмекеры из конфига → Perplexity → `OddsData`
-- ⬜ Передача реальных данных в UI через `analysis.ts`
+### 3.6 — Букмекерские линии (шаг 7) ✅
+- ✅ `lib/pipeline/steps/odds.ts` — букмекеры из конфига → Perplexity → `OddsData`
+- ✅ Передача реальных данных в UI через `analysis.ts`
 
 ---
 
@@ -95,9 +98,21 @@
 
 ---
 
-## Фаза 6 — Polish
+## Фаза 6 — Sports API
 
-- ⬜ End-to-end прогон: ввод → Perplexity → Claude → отчёт
+Perplexity ненадёжен для фактических данных (счета матчей, результаты). Подключаем спортивные API для точных данных.
+
+- ⬜ Выбор и подключение Sports API (API-Hockey, API-Football и т.д.)
+- ⬜ Переделать шаг 3.2 (Форма) на Sports API
+- ⬜ Переделать шаг 3.3 (H2H) на Sports API
+- ⬜ Переделать шаг 3.4 (Статистика) на Sports API
+- ⬜ Адаптер: единый интерфейс для разных спортов/лиг
+
+---
+
+## Фаза 7 — Polish
+
+- ⬜ End-to-end прогон: ввод → данные → Claude → отчёт
 - ⬜ Error handling, таймауты, fallback при частичных данных
 - ⬜ Адаптация под Telegram Mini App (safe areas, theme)
 - ⬜ Финальная полировка UI
