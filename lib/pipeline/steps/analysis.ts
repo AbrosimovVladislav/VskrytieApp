@@ -36,23 +36,42 @@ const BET_MARKET_NAMES: Record<string, string> = {
   handicap: "Фора",
 };
 
-const STATS_DISPLAY: Record<string, string> = {
-  goalsFor: "Атака",
-  avgGoalsFor: "Атака",
-  goalsAgainst: "Оборона",
-  avgGoalsAgainst: "Оборона",
-  powerPlayPct: "Большинство",
-  penaltyKillPct: "Меньшинство",
+// Маппинг русских лейблов из stats.ts → 4 категории для UI
+const STATS_CATEGORY: Record<string, string> = {
+  "Голы забитые": "Атака",
+  "Ср. голов забито": "Атака",
+  "Голы пропущенные": "Оборона",
+  "Ср. голов пропущено": "Оборона",
+  "Большинство %": "Большинство",
+  "Меньшинство %": "Меньшинство",
+};
+
+// Приоритет: средние значения лучше абсолютных
+const STATS_PRIORITY: Record<string, number> = {
+  "Ср. голов забито": 2,
+  "Голы забитые": 1,
+  "Ср. голов пропущено": 2,
+  "Голы пропущенные": 1,
+  "Большинство %": 1,
+  "Меньшинство %": 1,
 };
 
 function filterStats(
   data: Record<string, string | number>
 ): Record<string, string | number> {
-  const result: Record<string, string | number> = {};
+  // Группируем по категории, берём лучший показатель (с бо́льшим приоритетом)
+  const byCategory: Record<string, { value: string | number; priority: number }> = {};
   for (const [key, value] of Object.entries(data)) {
-    if (key in STATS_DISPLAY) {
-      result[STATS_DISPLAY[key]] = value;
+    const category = STATS_CATEGORY[key];
+    if (!category) continue;
+    const priority = STATS_PRIORITY[key] || 0;
+    if (!byCategory[category] || priority > byCategory[category].priority) {
+      byCategory[category] = { value, priority };
     }
+  }
+  const result: Record<string, string | number> = {};
+  for (const cat of ["Атака", "Оборона", "Большинство", "Меньшинство"]) {
+    if (byCategory[cat]) result[cat] = byCategory[cat].value;
   }
   return result;
 }
@@ -65,23 +84,21 @@ function buildSystemPrompt(config: LeagueConfig): string {
 
   return `Ты — профессиональный ${analyst} аналитик. Проанализируй данные о предстоящем матче и верни структурированный JSON-ответ.
 
-Правила стиля:
-- Пиши коротко, ёмко, интересно — как инсайдер, а не как учебник
-- Каждый analysis — ровно 1-2 предложения, суть без воды
-- context: для каждой команды 1-2 предложения — самое важное из кадров/травм/новостей, пиши живо и по делу
-- recommendation.summary — 1-2 предложения, чёткий вывод
-- reasoning в ставках — 1 предложение
+КРИТИЧЕСКИ ВАЖНО:
+- Опирайся ТОЛЬКО на предоставленные данные. НЕ выдумывай факты, травмы, мотивации, которых нет в данных.
+- Внимательно читай поле "Стадия сезона" — если это плейофф, кубок, решающие матчи, учитывай это во ВСЕХ секциях. В плейофф мотивация максимальная у ОБЕИХ команд, не пиши что кто-то "демотивирован" без явных данных.
+- Если написано "борьба за плейофф", "1/4 финала", "финал конференции" и т.п. — это радикально меняет контекст матча.
 
-Секции:
-- motivation.analysis: 1-2 предложения
-- form.analysis: 1-2 предложения
-- h2h.analysis: 1-2 предложения
-- stats.analysis: 1-2 предложения
-- context: team1_analysis и team2_analysis — по 1-2 предложения на каждую команду
-- odds.analysis: 1-2 предложения
-- recommendation: summary 1-2 предложения, ровно 2 ставки по рынкам: ${markets}
+Стиль:
+- Коротко, ёмко, как инсайдер. Без воды.
+- Каждый analysis — 1-2 предложения.
+- context: по 1-2 предложения на команду, только важное (травмы, ключевые отсутствия, настрой).
+- recommendation.summary — 1-2 предложения, чёткий вывод.
+- reasoning — 1 короткое предложение.
 
-Ответ — ТОЛЬКО валидный JSON, без markdown, без \`\`\`json. Схема:
+Рынки ставок: ${markets}. Ровно 2 ставки.
+
+Ответ — ТОЛЬКО валидный JSON, без markdown, без \`\`\`json:
 {
   "motivation": { "analysis": "string" },
   "form": { "analysis": "string" },

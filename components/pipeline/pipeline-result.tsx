@@ -52,20 +52,47 @@ export function PipelineResult({ report }: PipelineResultProps) {
       </Section>
 
       <Section title="История встреч" analysis={report.h2h.analysis}>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           {report.h2h.data.games.map((g, i) => {
             const parts = g.score.split(/[:\-–]/);
-            const s1 = parts[0]?.trim();
-            const s2 = parts[1]?.trim();
+            const n1 = parseInt(parts[0]?.trim() ?? "");
+            const n2 = parseInt(parts[1]?.trim() ?? "");
+            const team1Wins = !isNaN(n1) && !isNaN(n2) && n1 > n2;
+            const team2Wins = !isNaN(n1) && !isNaN(n2) && n2 > n1;
             return (
-              <div key={i} className="flex items-center gap-3 bg-bg-card-dark rounded-lg px-3 py-2">
-                <span className="text-text-secondary text-xs w-20 shrink-0">{g.date}</span>
-                <div className="flex items-center gap-2 flex-1 justify-center">
-                  <span className="text-text text-sm font-medium tabular-nums">{s1 ?? "?"}</span>
-                  <span className="text-text-secondary text-xs">:</span>
-                  <span className="text-text text-sm font-medium tabular-nums">{s2 ?? "?"}</span>
+              <div key={i} className="relative overflow-hidden rounded-lg bg-bg-card-dark">
+                {/* Gradient indicator for winner */}
+                {team1Wins && (
+                  <div className="absolute inset-y-0 left-0 w-1 bg-positive" />
+                )}
+                {team2Wins && (
+                  <div className="absolute inset-y-0 right-0 w-1 bg-negative" />
+                )}
+                <div className="flex items-center px-3 py-2.5">
+                  {/* Team 1 name */}
+                  <span className={`text-xs flex-1 truncate ${team1Wins ? "text-positive font-medium" : "text-text-secondary"}`}>
+                    {report.match.team1}
+                  </span>
+                  {/* Score */}
+                  <div className="flex items-center gap-1.5 mx-3">
+                    <span className={`text-lg font-bold tabular-nums ${team1Wins ? "text-positive" : "text-text"}`}>
+                      {isNaN(n1) ? "?" : n1}
+                    </span>
+                    <span className="text-text-secondary text-xs font-light">:</span>
+                    <span className={`text-lg font-bold tabular-nums ${team2Wins ? "text-negative" : "text-text"}`}>
+                      {isNaN(n2) ? "?" : n2}
+                    </span>
+                  </div>
+                  {/* Team 2 name */}
+                  <span className={`text-xs flex-1 truncate text-right ${team2Wins ? "text-negative font-medium" : "text-text-secondary"}`}>
+                    {report.match.team2}
+                  </span>
                 </div>
-                <span className="text-text-secondary text-[10px] w-16 text-right truncate">{g.venue}</span>
+                {/* Date bar */}
+                <div className="bg-bg/40 px-3 py-0.5 flex justify-between">
+                  <span className="text-[10px] text-text-secondary/60">{g.date}</span>
+                  <span className="text-[10px] text-text-secondary/60">{g.venue}</span>
+                </div>
               </div>
             );
           })}
