@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { validateTelegramInitData } from '@/lib/telegram/validate'
-import { collectMatchData, analyzeMatch } from '@/lib/claude/client'
+import { collectMatchData } from '@/lib/perplexity/client'
+import { analyzeMatch } from '@/lib/claude/client'
 import type { FullReport } from '@/lib/types/report'
 
 export const maxDuration = 120
