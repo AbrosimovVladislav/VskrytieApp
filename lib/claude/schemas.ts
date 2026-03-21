@@ -15,17 +15,17 @@ const TeamFormSchema = z.object({
 // ── Stats ──
 
 const TeamStatsSchema = z.object({
-  goalsScored: z.number().describe('Average goals scored per game (last 5-10 matches)'),
-  goalsConceded: z.number().describe('Average goals conceded per game'),
-  xG: z.number().optional().describe('Average expected goals per game'),
-  xGA: z.number().optional().describe('Average expected goals against per game'),
-  shotsOnTarget: z.number().describe('Average shots on target per game'),
-  possession: z.number().describe('Average possession %'),
-  corners: z.number().describe('Average corners per game'),
-  yellowCards: z.number().describe('Average yellow cards per game'),
-  cleanSheets: z.number().describe('Clean sheets out of last 5-10 matches'),
-  bttsPct: z.number().describe('% of matches where both teams scored'),
-  over25Pct: z.number().describe('% of matches with total goals > 2.5'),
+  goalsScored: z.number().nullable().describe('Average goals scored per game (last 5-10 matches)'),
+  goalsConceded: z.number().nullable().describe('Average goals conceded per game'),
+  xG: z.number().nullable().optional().describe('Average expected goals per game'),
+  xGA: z.number().nullable().optional().describe('Average expected goals against per game'),
+  shotsOnTarget: z.number().nullable().describe('Average shots on target per game'),
+  possession: z.number().nullable().describe('Average possession %'),
+  corners: z.number().nullable().describe('Average corners per game'),
+  yellowCards: z.number().nullable().describe('Average yellow cards per game'),
+  cleanSheets: z.number().nullable().describe('Clean sheets out of last 5-10 matches'),
+  bttsPct: z.number().nullable().describe('% of matches where both teams scored'),
+  over25Pct: z.number().nullable().describe('% of matches with total goals > 2.5'),
 })
 
 // ── Injuries ──
@@ -52,16 +52,16 @@ const ContextFactorsSchema = z.object({
   weather: z.object({
     temp: z.number(),
     condition: z.string(),
-  }).optional().describe('null if indoor stadium'),
+  }).nullable().optional().describe('null if indoor stadium'),
   restDays: z.object({
-    home: z.number(),
-    away: z.number(),
+    home: z.number().nullable(),
+    away: z.number().nullable(),
   }),
   referee: z.object({
     name: z.string(),
     avgYellowCards: z.number(),
     penaltiesPerGame: z.number(),
-  }).optional().describe('null if not found'),
+  }).nullable().optional().describe('null if not found'),
   recentTransfers: z.array(z.string()).optional(),
 })
 
