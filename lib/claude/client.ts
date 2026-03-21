@@ -1,48 +1,33 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { AnalysisReportSchema, analysisReportJsonSchema } from './schemas'
-import { analyzePrompt } from './prompts'
-import type { MatchData, AnalysisReport } from '@/lib/types/report'
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-const MODEL = 'claude-sonnet-4-6'
+export { client as claude }
 
-/**
- * Analyze match data using Claude (no web search, streaming).
- */
-export async function analyzeMatch(matchData: MatchData): Promise<AnalysisReport> {
-  const stream = client.messages.stream({
-    model: MODEL,
-    max_tokens: 4096,
-    messages: [
-      {
-        role: 'user',
-        content: `${analyzePrompt(matchData.context.sport)}\n\nДанные матча:\n${JSON.stringify(matchData, null, 2)}`,
-      },
-    ],
-    tools: [
-      {
-        name: 'submit_analysis',
-        description: 'Submit the analysis report as structured JSON.',
-        input_schema: analysisReportJsonSchema as Anthropic.Tool.InputSchema,
-      },
-    ],
-    tool_choice: { type: 'tool', name: 'submit_analysis' },
+export async function callClaude(
+  prompt: string,
+  options?: {
+    model?: string
+    maxTokens?: number
+    system?: string
+  },
+): Promise<string> {
+  const response = await client.messages.create({
+    model: options?.model ?? 'claude-sonnet-4-6',
+    max_tokens: options?.maxTokens ?? 4096,
+    system: options?.system,
+    messages: [{ role: 'user', content: prompt }],
   })
 
-  const response = await stream.finalMessage()
-
-  const toolUseBlock = response.content.find(
-    (block): block is Anthropic.ToolUseBlock =>
-      block.type === 'tool_use' && block.name === 'submit_analysis',
+  const textBlock = response.content.find(
+    (b): b is Anthropic.TextBlock => b.type === 'text',
   )
 
-  if (!toolUseBlock) {
-    throw new Error('Claude did not call submit_analysis tool')
+  if (!textBlock) {
+    throw new Error('Claude returned no text')
   }
 
-  const parsed = AnalysisReportSchema.parse(toolUseBlock.input)
-  return parsed as AnalysisReport
+  return textBlock.text
 }
