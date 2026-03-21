@@ -25,22 +25,22 @@ async function fetchTeamForm(
   leagueConfig: LeagueConfig
 ): Promise<GameResult[]> {
   const jsonFormat = `[
-  { "date": "YYYY-MM-DD", "opponent": "соперник", "score": "Г:Г", "home": true, "result": "W" },
-  { "date": "YYYY-MM-DD", "opponent": "соперник", "score": "Г:Г", "home": false, "result": "L" }
+  { "date": "YYYY-MM-DD", "opponent": "соперник", "score": "Г:Г", "home": true, "overtime": false },
+  { "date": "YYYY-MM-DD", "opponent": "соперник", "score": "Г:Г", "home": false, "overtime": true }
 ]`;
 
   const prompt = `Последние 5 сыгранных матчей команды ${teamName} в ${leagueConfig.name} сезона ${leagueConfig.season}.
 
-Для каждого матча укажи: дату, соперника, счёт, дома или на выезде, результат.
-
-Поле result:
-- "W" — победа в основное время
-- "L" — поражение в основное время
-- "OTW" — победа в овертайме/по буллитам
-- "OTL" — поражение в овертайме/по буллитам
+Для каждого матча укажи:
+- date: дата матча
+- opponent: название соперника
+- score: счёт с точки зрения ${teamName} (сначала голы ${teamName}, потом голы соперника), формат "Г:Г"
+- home: true если ${teamName} играл дома, false если на выезде
+- overtime: true если матч завершился в овертайме или по буллитам, false если в основное время
 
 ВАЖНО:
 - Ровно 5 матчей, от самого свежего к старому
+- Счёт ВСЕГДА с точки зрения ${teamName}: первое число — голы ${teamName}
 - НЕ добавляй ссылки в квадратных скобках типа [1], [2]
 - Ответь ТОЛЬКО массивом JSON без обёртки, без markdown:
 ${jsonFormat}`;
@@ -56,19 +56,33 @@ function parseGames(raw: string): GameResult[] {
 
   if (!Array.isArray(parsed)) return [];
 
-  return parsed.slice(0, 5).map((g: Record<string, unknown>) => ({
-    date: clean(g.date as string) || "",
-    opponent: clean(g.opponent as string) || "",
-    score: clean(g.score as string) || "",
-    home: Boolean(g.home),
-    result: parseResult(g.result),
-  }));
+  return parsed.slice(0, 5).map((g: Record<string, unknown>) => {
+    const score = clean(g.score as string) || "0:0";
+    const overtime = Boolean(g.overtime);
+    const result = computeResult(score, overtime);
+
+    return {
+      date: clean(g.date as string) || "",
+      opponent: clean(g.opponent as string) || "",
+      score,
+      home: Boolean(g.home),
+      result,
+    };
+  });
 }
 
-function parseResult(r: unknown): GameResult["result"] {
-  const val = String(r).toUpperCase();
-  if (val === "W" || val === "L" || val === "OTW" || val === "OTL") return val;
-  return "W";
+/** Вычисляем результат по счёту (счёт с точки зрения команды: "голы_команды:голы_соперника") */
+function computeResult(score: string, overtime: boolean): GameResult["result"] {
+  const parts = score.split(":").map((s) => parseInt(s.trim(), 10));
+  if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return "W";
+
+  const [goalsFor, goalsAgainst] = parts;
+
+  if (goalsFor > goalsAgainst) {
+    return overtime ? "OTW" : "W";
+  } else {
+    return overtime ? "OTL" : "L";
+  }
 }
 
 function clean(value: string | undefined): string {
