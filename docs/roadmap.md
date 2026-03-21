@@ -1,6 +1,6 @@
 # Roadmap
 
-## Текущая фаза: 3 (сбор данных)
+## Текущая фаза: 5 (UI отчёта)
 
 ---
 
@@ -43,42 +43,48 @@
 **Подход**: каждый реализованный шаг сразу передаёт реальные данные в UI (через `analysis.ts` → `AnalysisReport`). Поле `analysis` (зелёный текст) — заглушка до фазы 4. Все ответы Perplexity очищаются от ссылок `[N]` через `clean()`.
 
 ### 3.1 — Контекст и мотивация (шаг 2) ✅
+
 - ✅ `lib/pipeline/steps/context-motivation.ts`
 - ✅ Промпт из шаблона → Perplexity → парсинг → `MotivationData`
 - ✅ Очистка ссылок `[N]` из ответов Perplexity
 - ✅ Передача реальных данных в UI через `analysis.ts`
 
 ### 3.2 — Форма команд (шаг 3) ✅
+
 - ✅ `lib/pipeline/steps/form.ts` — Perplexity → парсинг → `FormData`
 - ✅ Передача реальных данных в UI через `analysis.ts`
 - ⚠️ **→ Sports API (фаза 6)**: Perplexity выдаёт неверные счета матчей
 
 ### 3.3 — H2H (шаг 4) ✅
+
 - ✅ `lib/pipeline/steps/h2h.ts` — Perplexity → парсинг → `H2HData`
 - ✅ Передача реальных данных в UI через `analysis.ts`
 - ⚠️ **→ Sports API (фаза 6)**: точные счета встреч нужны из API
 
 ### 3.4 — Статистика сезона (шаг 5) ✅
+
 - ✅ `lib/pipeline/steps/stats.ts` — `statsFields` из конфига → Perplexity → `StatsData`
 - ✅ Передача реальных данных в UI через `analysis.ts`
 - ⚠️ **→ Sports API (фаза 6)**: точные цифры статистики нужны из API
 
 ### 3.5 — Кадры и контекст (шаг 6) ✅
+
 - ✅ `lib/pipeline/steps/squad-context.ts` — Perplexity → парсинг → `SquadContextData`
 - ✅ Передача реальных данных в UI через `analysis.ts`
 
 ### 3.6 — Букмекерские линии (шаг 7) ✅
+
 - ✅ `lib/pipeline/steps/odds.ts` — букмекеры из конфига → Perplexity → `OddsData`
 - ✅ Передача реальных данных в UI через `analysis.ts`
 
 ---
 
-## Фаза 4 — Анализ Claude (шаг 8)
+## Фаза 4 — Анализ Claude (шаг 8) ✅
 
-- ⬜ `lib/pipeline/steps/analysis.ts`
-- ⬜ Системный промпт-шаблон (спорт из конфига)
-- ⬜ Сборка всех данных в user-промпт
-- ⬜ Claude → JSON → `AnalysisReport`
+- ✅ `lib/pipeline/steps/analysis.ts`
+- ✅ Системный промпт-шаблон (спорт из конфига)
+- ✅ Сборка всех данных в user-промпт
+- ✅ Claude → JSON → `AnalysisReport`
 
 ---
 
@@ -113,6 +119,10 @@ Perplexity ненадёжен для фактических данных (сче
 ## Фаза 7 — Polish
 
 - ⬜ End-to-end прогон: ввод → данные → Claude → отчёт
+- Пункт меню с историей запросов конкретного юзера
 - ⬜ Error handling, таймауты, fallback при частичных данных
 - ⬜ Адаптация под Telegram Mini App (safe areas, theme)
+- Авторизация через телегу автоматом, личный кабинет
+- 
 - ⬜ Финальная полировка UI
+
