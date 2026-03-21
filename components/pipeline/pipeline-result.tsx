@@ -43,6 +43,7 @@ export function PipelineResult({ report, debugLogs }: PipelineResultProps) {
           teamName={report.match.team2}
           games={report.form.data.team2_last5}
         />
+        <DebugRaw label="debugLogs check" data={debugLogs ? `${debugLogs.length} logs` : "debugLogs is undefined"} />
         {debugLogs?.filter(l => l.step.startsWith("Форма")).map((l, i) => (
           <DebugRaw key={i} label={l.step} data={l.raw} />
         ))}
