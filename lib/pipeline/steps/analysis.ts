@@ -46,8 +46,7 @@ export async function runAnalysis(input: AnalysisInput): Promise<AnalysisReport>
         team1_last5: input.form.team1_last5,
         team2_last5: input.form.team2_last5,
       },
-      analysis:
-        "ЦСКА в хорошей форме (3W, 1L, 1OTL), особенно сильны дома. СКА стабильны (3W, 1OTW, 1L), но проиграли Ак Барсу дома.",
+      analysis: "Анализ формы будет доступен после подключения Claude (фаза 4)",
     },
     h2h: {
       data: { games: input.h2h.games },

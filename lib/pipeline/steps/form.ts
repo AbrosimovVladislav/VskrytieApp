@@ -1,4 +1,5 @@
-import { MatchInfo, LeagueConfig, FormData } from "@/types/pipeline";
+import { MatchInfo, LeagueConfig, FormData, GameResult } from "@/types/pipeline";
+import { queryPerplexity } from "@/lib/perplexity/client";
 
 interface FormInput {
   match: MatchInfo;
@@ -6,27 +7,76 @@ interface FormInput {
 }
 
 export async function fetchForm(input: FormInput): Promise<FormData> {
-  // TODO: Phase 3.2 — real Perplexity request
-  await delay(700);
+  const { match, leagueConfig } = input;
+
+  const jsonFormat = `{
+  "team1_last5": [
+    { "date": "YYYY-MM-DD", "opponent": "соперник", "score": "Г:Г", "home": true, "result": "W" }
+  ],
+  "team2_last5": [
+    { "date": "YYYY-MM-DD", "opponent": "соперник", "score": "Г:Г", "home": false, "result": "L" }
+  ]
+}`;
+
+  const prompt = `Последние 5 сыгранных матчей команды ${match.team1} и последние 5 сыгранных матчей команды ${match.team2} в ${leagueConfig.name} сезона ${leagueConfig.season}.
+
+Для каждого матча укажи: дату, соперника, счёт, дома или на выезде, результат.
+
+Поле result:
+- "W" — победа в основное время
+- "L" — поражение в основное время
+- "OTW" — победа в овертайме/по буллитам
+- "OTL" — поражение в овертайме/по буллитам
+
+ВАЖНО:
+- Ровно 5 матчей на каждую команду, от самого свежего к старому
+- НЕ добавляй ссылки в квадратных скобках типа [1], [2]
+- Ответь строго в JSON без markdown:
+${jsonFormat}`;
+
+  const raw = await queryPerplexity(prompt);
+  return parseFormResponse(raw);
+}
+
+function parseFormResponse(raw: string): FormData {
+  const jsonStr = extractJson(raw);
+  const parsed = JSON.parse(jsonStr);
 
   return {
-    team1_last5: [
-      { date: "2026-03-20", opponent: "Динамо Москва", score: "3:2", home: true, result: "W" },
-      { date: "2026-03-18", opponent: "Локомотив", score: "1:2", home: false, result: "L" },
-      { date: "2026-03-15", opponent: "Спартак", score: "4:1", home: true, result: "W" },
-      { date: "2026-03-13", opponent: "Торпедо", score: "2:3", home: false, result: "OTL" },
-      { date: "2026-03-10", opponent: "Витязь", score: "5:0", home: true, result: "W" },
-    ],
-    team2_last5: [
-      { date: "2026-03-20", opponent: "Металлург", score: "2:1", home: true, result: "W" },
-      { date: "2026-03-17", opponent: "Авангард", score: "3:3", home: false, result: "OTW" },
-      { date: "2026-03-14", opponent: "Ак Барс", score: "1:4", home: true, result: "L" },
-      { date: "2026-03-12", opponent: "Трактор", score: "3:2", home: false, result: "W" },
-      { date: "2026-03-09", opponent: "Салават Юлаев", score: "2:0", home: true, result: "W" },
-    ],
+    team1_last5: parseGames(parsed.team1_last5),
+    team2_last5: parseGames(parsed.team2_last5),
   };
 }
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function parseGames(games: unknown): GameResult[] {
+  if (!Array.isArray(games)) return [];
+
+  return games.slice(0, 5).map((g) => ({
+    date: clean(g.date) || "",
+    opponent: clean(g.opponent) || "",
+    score: clean(g.score) || "",
+    home: Boolean(g.home),
+    result: parseResult(g.result),
+  }));
+}
+
+function parseResult(r: unknown): GameResult["result"] {
+  const val = String(r).toUpperCase();
+  if (val === "W" || val === "L" || val === "OTW" || val === "OTL") return val;
+  return "W";
+}
+
+function clean(value: string | undefined): string {
+  if (!value) return "";
+  return String(value).replace(/\[\d+\]/g, "").replace(/\s{2,}/g, " ").trim();
+}
+
+function extractJson(text: string): string {
+  const codeBlock = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlock) return codeBlock[1].trim();
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (jsonMatch) return jsonMatch[0];
+
+  throw new Error("Не удалось извлечь JSON из ответа Perplexity (form)");
 }

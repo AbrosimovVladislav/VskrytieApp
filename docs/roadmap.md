@@ -48,9 +48,9 @@
 - ✅ Очистка ссылок `[N]` из ответов Perplexity
 - ✅ Передача реальных данных в UI через `analysis.ts`
 
-### 3.2 — Форма команд (шаг 3)
-- ⬜ `lib/pipeline/steps/form.ts` — Perplexity → парсинг → `FormData`
-- ⬜ Передача реальных данных в UI через `analysis.ts`
+### 3.2 — Форма команд (шаг 3) ✅
+- ✅ `lib/pipeline/steps/form.ts` — Perplexity → парсинг → `FormData`
+- ✅ Передача реальных данных в UI через `analysis.ts`
 
 ### 3.3 — H2H (шаг 4)
 - ⬜ `lib/pipeline/steps/h2h.ts` — Perplexity → парсинг → `H2HData`
