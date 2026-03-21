@@ -13,7 +13,7 @@ export async function queryPerplexity(prompt: string): Promise<string> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'sonar',
+      model: 'sonar-pro',
       messages: [
         { role: 'user', content: prompt },
       ],
