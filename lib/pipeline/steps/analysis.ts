@@ -36,10 +36,10 @@ export async function runAnalysis(input: AnalysisInput): Promise<AnalysisReport>
     },
     motivation: {
       data: {
-        team1: formatMotivation(input.motivation.team1),
-        team2: formatMotivation(input.motivation.team2),
+        team1: `${input.motivation.team1.position}, ${input.motivation.team1.fighting_for.toLowerCase()}`,
+        team2: `${input.motivation.team2.position}, ${input.motivation.team2.fighting_for.toLowerCase()}`,
       },
-      analysis: `Стадия: ${input.motivation.stage}`,
+      analysis: "Анализ мотивации будет доступен после подключения Claude (фаза 4)",
     },
     form: {
       data: {
@@ -93,10 +93,6 @@ export async function runAnalysis(input: AnalysisInput): Promise<AnalysisReport>
       ],
     },
   };
-}
-
-function formatMotivation(team: { position: string; fighting_for: string; priority: string }): string {
-  return `${team.position}. ${team.fighting_for}. Приоритет: ${team.priority}`;
 }
 
 function delay(ms: number) {

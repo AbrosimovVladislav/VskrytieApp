@@ -13,25 +13,30 @@ export async function fetchContextMotivation(
 
   const jsonFormat = `{
   "team1": {
-    "position": "позиция в таблице (например: 5-е место, Западная конференция)",
-    "fighting_for": "за что борется (плей-офф, лидерство, выживание и т.д.)",
-    "priority": "приоритет матча для команды"
+    "position": "место в таблице, конференция",
+    "fighting_for": "за что борется, коротко",
+    "priority": "высокий/средний/низкий — почему, коротко"
   },
   "team2": {
     "position": "...",
     "fighting_for": "...",
     "priority": "..."
   },
-  "stage": "стадия сезона (например: Регулярный сезон, финальная треть)"
+  "stage": "стадия сезона, коротко"
 }`;
 
   const prompt = `Матч ${match.team1} vs ${match.team2}, ${leagueConfig.name}, ${match.date}.
-Какое турнирное положение каждой команды?
-За что борется каждая (плей-офф, место в таблице, вылет)?
-Какая стадия сезона?
-Какой приоритет этого матча для каждой?
 
-Ответь строго в JSON без markdown:
+Дай краткую информацию о турнирном положении каждой команды:
+- Место в таблице
+- За что борется
+- Приоритет этого матча
+- Стадия сезона
+
+ВАЖНО:
+- Пиши КРАТКО, без развёрнутых пояснений
+- НЕ добавляй ссылки в квадратных скобках типа [1], [2] и т.д.
+- Ответь строго в JSON без markdown:
 ${jsonFormat}`;
 
   const raw = await queryPerplexity(prompt);
@@ -44,17 +49,23 @@ function parseMotivationResponse(raw: string): MotivationData {
 
   return {
     team1: {
-      position: parsed.team1?.position || "Нет данных",
-      fighting_for: parsed.team1?.fighting_for || "Нет данных",
-      priority: parsed.team1?.priority || "Нет данных",
+      position: clean(parsed.team1?.position),
+      fighting_for: clean(parsed.team1?.fighting_for),
+      priority: clean(parsed.team1?.priority),
     },
     team2: {
-      position: parsed.team2?.position || "Нет данных",
-      fighting_for: parsed.team2?.fighting_for || "Нет данных",
-      priority: parsed.team2?.priority || "Нет данных",
+      position: clean(parsed.team2?.position),
+      fighting_for: clean(parsed.team2?.fighting_for),
+      priority: clean(parsed.team2?.priority),
     },
-    stage: parsed.stage || "Нет данных",
+    stage: clean(parsed.stage),
   };
+}
+
+/** Remove Perplexity citation references like [1], [3][5] */
+function clean(value: string | undefined): string {
+  if (!value) return "Нет данных";
+  return value.replace(/\[\d+\]/g, "").replace(/\s{2,}/g, " ").trim();
 }
 
 function extractJson(text: string): string {

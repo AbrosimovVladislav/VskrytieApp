@@ -40,29 +40,33 @@
 
 Каждая подфаза — один шаг оркестратора, реальный запрос в Perplexity.
 
+**Подход**: каждый реализованный шаг сразу передаёт реальные данные в UI (через `analysis.ts` → `AnalysisReport`). Поле `analysis` (зелёный текст) — заглушка до фазы 4. Все ответы Perplexity очищаются от ссылок `[N]` через `clean()`.
+
 ### 3.1 — Контекст и мотивация (шаг 2) ✅
 - ✅ `lib/pipeline/steps/context-motivation.ts`
 - ✅ Промпт из шаблона → Perplexity → парсинг → `MotivationData`
+- ✅ Очистка ссылок `[N]` из ответов Perplexity
+- ✅ Передача реальных данных в UI через `analysis.ts`
 
 ### 3.2 — Форма команд (шаг 3)
-- ⬜ `lib/pipeline/steps/form.ts`
-- ⬜ Промпт → Perplexity → парсинг → `FormData`
+- ⬜ `lib/pipeline/steps/form.ts` — Perplexity → парсинг → `FormData`
+- ⬜ Передача реальных данных в UI через `analysis.ts`
 
 ### 3.3 — H2H (шаг 4)
-- ⬜ `lib/pipeline/steps/h2h.ts`
-- ⬜ Промпт → Perplexity → парсинг → `H2HData`
+- ⬜ `lib/pipeline/steps/h2h.ts` — Perplexity → парсинг → `H2HData`
+- ⬜ Передача реальных данных в UI через `analysis.ts`
 
 ### 3.4 — Статистика сезона (шаг 5)
-- ⬜ `lib/pipeline/steps/stats.ts`
-- ⬜ Промпт динамический из `statsFields` → Perplexity → парсинг → `StatsData`
+- ⬜ `lib/pipeline/steps/stats.ts` — `statsFields` из конфига → Perplexity → `StatsData`
+- ⬜ Передача реальных данных в UI через `analysis.ts`
 
 ### 3.5 — Кадры и контекст (шаг 6)
-- ⬜ `lib/pipeline/steps/squad-context.ts`
-- ⬜ Промпт → Perplexity → парсинг → `SquadContextData`
+- ⬜ `lib/pipeline/steps/squad-context.ts` — Perplexity → парсинг → `SquadContextData`
+- ⬜ Передача реальных данных в UI через `analysis.ts`
 
 ### 3.6 — Букмекерские линии (шаг 7)
-- ⬜ `lib/pipeline/steps/odds.ts`
-- ⬜ Промпт с букмекерами из конфига → Perplexity → парсинг → `OddsData`
+- ⬜ `lib/pipeline/steps/odds.ts` — букмекеры из конфига → Perplexity → `OddsData`
+- ⬜ Передача реальных данных в UI через `analysis.ts`
 
 ---
 
