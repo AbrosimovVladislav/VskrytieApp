@@ -10,37 +10,6 @@ interface StatsSectionProps {
   analysis?: string
 }
 
-function XgBlock({ team, goals, xG }: { team: string; goals: number; xG?: number | null }) {
-  if (xG == null) return null
-
-  const diff = goals - xG
-  let indicator: string
-  let colorClass: string
-
-  if (diff > 0.15) {
-    indicator = `▲ Забивают больше xG (+${diff.toFixed(2)})`
-    colorClass = 'text-warning'
-  } else if (diff < -0.15) {
-    indicator = `▼ Забивают меньше xG (${diff.toFixed(2)})`
-    colorClass = 'text-positive'
-  } else {
-    indicator = '≈ В рамках ожиданий'
-    colorClass = 'text-muted'
-  }
-
-  return (
-    <div className="rounded-[--radius-button] bg-bg-overlay border border-border px-3 py-2.5">
-      <p className="text-xs font-medium text-text mb-1">{team}</p>
-      <div className="flex items-baseline gap-3">
-        <span className="text-sm tabular-nums text-text">
-          Голы <span className="font-semibold">{goals.toFixed(1)}</span> vs xG <span className="font-semibold">{xG.toFixed(2)}</span>
-        </span>
-      </div>
-      <p className={`text-xs mt-1 ${colorClass}`}>{indicator}</p>
-    </div>
-  )
-}
-
 interface BarProps {
   label: string
   homeValue: number
@@ -83,41 +52,45 @@ function StatBar({ label, homeValue, awayValue, invertAccent }: BarProps) {
 }
 
 export function StatsSection({ home, away, homeTeam, awayTeam, analysis }: StatsSectionProps) {
-  const allBars: BarProps[] = [
-    { label: 'Голов забито (ср.)', homeValue: home.goalsScored, awayValue: away.goalsScored },
-    { label: 'Голов пропущено (ср.)', homeValue: home.goalsConceded, awayValue: away.goalsConceded, invertAccent: true },
-    { label: 'Удары в створ (ср.)', homeValue: home.shotsOnTarget, awayValue: away.shotsOnTarget },
-    { label: 'Владение %', homeValue: home.possession, awayValue: away.possession },
-    { label: 'BTTS %', homeValue: home.bttsPct, awayValue: away.bttsPct },
-    { label: 'Тотал Б2.5 %', homeValue: home.over25Pct, awayValue: away.over25Pct },
+  // Build bars dynamically — only show stats where both values are non-null
+  const allBars: (BarProps | null)[] = [
+    home.goalsScored != null && away.goalsScored != null
+      ? { label: 'Голов забито (ср.)', homeValue: home.goalsScored, awayValue: away.goalsScored }
+      : null,
+    home.goalsConceded != null && away.goalsConceded != null
+      ? { label: 'Голов пропущено (ср.)', homeValue: home.goalsConceded, awayValue: away.goalsConceded, invertAccent: true }
+      : null,
+    home.shotsOnTarget != null && away.shotsOnTarget != null
+      ? { label: 'Удары в створ (ср.)', homeValue: home.shotsOnTarget, awayValue: away.shotsOnTarget }
+      : null,
+    home.possession != null && away.possession != null
+      ? { label: 'Владение %', homeValue: home.possession, awayValue: away.possession }
+      : null,
   ]
-  // Hide bars where both values are 0 (e.g. hockey has no shots/possession data)
-  const bars = allBars.filter(b => b.homeValue > 0 || b.awayValue > 0)
+
+  const bars = allBars.filter((b): b is BarProps => b != null)
+
+  if (bars.length === 0 && !analysis) return null
 
   return (
     <div className="rounded-[--radius-card] bg-bg-card border border-border-card p-5 shadow-[--shadow-card]">
-      <h3 className="text-[14px] font-semibold text-text mb-4">ПРОДВИНУТАЯ СТАТИСТИКА</h3>
+      <h3 className="text-[14px] font-semibold text-text mb-4">СТАТИСТИКА</h3>
 
-      {/* xG Performance Block */}
-      {(home.xG != null || away.xG != null) && (
-        <div className="flex flex-col gap-2 mb-5">
-          <p className="text-xs text-muted uppercase tracking-wider mb-1">xG-перформанс</p>
-          <XgBlock team={homeTeam} goals={home.goalsScored} xG={home.xG} />
-          <XgBlock team={awayTeam} goals={away.goalsScored} xG={away.xG} />
-        </div>
+      {bars.length > 0 && (
+        <>
+          {/* Team labels */}
+          <div className="flex justify-between mb-3">
+            <span className="text-xs text-muted">{homeTeam}</span>
+            <span className="text-xs text-muted">{awayTeam}</span>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {bars.map((bar, i) => (
+              <StatBar key={i} {...bar} />
+            ))}
+          </div>
+        </>
       )}
-
-      {/* Team labels */}
-      <div className="flex justify-between mb-3">
-        <span className="text-xs text-muted">{homeTeam}</span>
-        <span className="text-xs text-muted">{awayTeam}</span>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        {bars.map((bar, i) => (
-          <StatBar key={i} {...bar} />
-        ))}
-      </div>
 
       {/* Analysis text */}
       {analysis && (

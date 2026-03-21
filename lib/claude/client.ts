@@ -19,7 +19,7 @@ export async function analyzeMatch(matchData: MatchData): Promise<AnalysisReport
     messages: [
       {
         role: 'user',
-        content: `${analyzePrompt()}\n\nДанные матча:\n${JSON.stringify(matchData, null, 2)}`,
+        content: `${analyzePrompt(matchData.context.sport)}\n\nДанные матча:\n${JSON.stringify(matchData, null, 2)}`,
       },
     ],
     tools: [

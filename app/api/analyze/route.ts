@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { validateTelegramInitData } from '@/lib/telegram/validate'
-import { collectMatchData } from '@/lib/perplexity/client'
+import { identifyMatch, collectStats, collectContext } from '@/lib/perplexity/client'
 import { analyzeMatch } from '@/lib/claude/client'
-import type { FullReport } from '@/lib/types/report'
+import type { MatchData, FullReport } from '@/lib/types/report'
 
 export const maxDuration = 120
 
@@ -86,35 +86,69 @@ export async function POST(req: NextRequest) {
 
         send({ type: 'id', id: report.id })
 
-        // ── Step 2: Collect (Claude + web search → MatchData) ──
-        send({ type: 'step', step: 'collect', message: 'Собираем данные о матче...' })
-        console.log('[analyze] Step 2: collecting match data via Claude + web search')
+        // ── Perplexity Step 1: Identify match ──
+        send({ type: 'step', step: 'collect', message: 'Определяем матч...' })
+        console.log('[analyze] Perplexity Step 1: identifying match')
 
-        const matchData = await collectMatchData(query, sport)
-        console.log('[analyze] match data collected:', matchData.context.homeTeam, 'vs', matchData.context.awayTeam)
+        const matchContext = await identifyMatch(query, sport)
+        console.log('[analyze] Match identified:', matchContext.homeTeam, 'vs', matchContext.awayTeam)
 
-        // Emit match_found
+        // Send match_found + context section immediately
         send({
           type: 'match_found',
-          teamName: `${matchData.context.homeTeam} vs ${matchData.context.awayTeam}`,
+          teamName: `${matchContext.homeTeam} vs ${matchContext.awayTeam}`,
           sport,
         })
+        // Context section without motivation yet (will be updated after step 3)
+        send({
+          type: 'section', section: 'context',
+          data: {
+            ...matchContext,
+            motivation: undefined,
+          },
+        })
+
+        // ── Perplexity Steps 2+3 in parallel ──
+        send({ type: 'step', step: 'collect', message: 'Собираем данные...' })
+        console.log('[analyze] Perplexity Steps 2+3: collecting stats + context in parallel')
+
+        const [statsData, contextData] = await Promise.all([
+          collectStats(matchContext),
+          collectContext(matchContext),
+        ])
+
+        // Assemble full MatchData
+        const matchData: MatchData = {
+          context: {
+            ...matchContext,
+            motivation: contextData.motivation,
+          },
+          form: statsData.form,
+          h2h: statsData.h2h,
+          stats: statsData.stats,
+          injuries: contextData.injuries,
+          contextFactors: contextData.contextFactors,
+          odds: statsData.odds,
+        }
 
         // Emit data sections
-        send({ type: 'section', section: 'context', data: matchData.context })
+        send({
+          type: 'section', section: 'context',
+          data: matchData.context,
+        })
         send({ type: 'section', section: 'form', data: { form: matchData.form, h2h: matchData.h2h } })
         send({ type: 'section', section: 'stats', data: { stats: matchData.stats } })
         send({ type: 'section', section: 'injuries', data: { injuries: matchData.injuries } })
         send({ type: 'section', section: 'context_factors', data: { contextFactors: matchData.contextFactors } })
         send({ type: 'section', section: 'odds', data: { bookmakers: matchData.odds.bookmakers } })
 
-        // ── Step 3: Analyze (Claude → AnalysisReport) ──
+        // ── Claude Analysis ──
         send({ type: 'step', step: 'analyze', message: 'Анализируем данные...' })
-        console.log('[analyze] Step 3: analyzing match data')
+        console.log('[analyze] Claude: analyzing match data')
 
         const analysisReport = await analyzeMatch(matchData)
 
-        // Emit analysis sections (merge with data)
+        // Emit analysis sections
         send({
           type: 'section', section: 'stats',
           data: { stats: matchData.stats, analysis: analysisReport.sections.statsAnalysis },

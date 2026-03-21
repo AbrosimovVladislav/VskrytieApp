@@ -59,34 +59,23 @@ export function FormSection({ homeTeam, awayTeam, form, h2h, analysis }: FormSec
       <h3 className="text-[14px] font-semibold text-text mb-4">ФОРМА И РЕЗУЛЬТАТЫ</h3>
 
       {/* Last 5 */}
-      <div className="flex flex-col gap-3 mb-4">
+      <div className="flex flex-col gap-3 mb-5">
         <FormRow team={homeTeam} results={form.home.last5} streak={form.home.streak} />
         <FormRow team={awayTeam} results={form.away.last5} streak={form.away.streak} />
       </div>
 
-      {/* Home/Away specific records */}
-      {(form.home.homeRecord || form.away.awayRecord) && (
-        <div className="flex flex-col gap-2 mb-5">
-          <p className="text-xs text-muted uppercase tracking-wider">Дома / На выезде</p>
-          {form.home.homeRecord && (
-            <FormRow team={`${homeTeam} (Д)`} results={form.home.homeRecord} />
-          )}
-          {form.away.awayRecord && (
-            <FormRow team={`${awayTeam} (В)`} results={form.away.awayRecord} />
-          )}
-        </div>
-      )}
-
       {/* H2H */}
       <div className="border-t border-border-secondary pt-4">
-        <p className="text-xs text-muted uppercase tracking-wider mb-3">Личные встречи</p>
+        <p className="text-xs text-muted uppercase tracking-wider mb-3">Личные встречи (сезон)</p>
 
-        <div className="flex items-center justify-center gap-4 mb-3">
-          <span className="text-sm font-medium text-text">{homeTeam}</span>
-          <span className="font-display text-2xl text-text tabular-nums">
-            {h2h.homeWins} <span className="text-muted text-lg">:</span> {h2h.awayWins}
-          </span>
-          <span className="text-sm font-medium text-text">{awayTeam}</span>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-medium text-text flex-1 min-w-0 truncate">{homeTeam}</span>
+          <div className="flex items-center gap-2 shrink-0 mx-3">
+            <span className="font-display text-2xl text-text tabular-nums w-8 text-right">{h2h.homeWins}</span>
+            <span className="text-muted text-lg">:</span>
+            <span className="font-display text-2xl text-text tabular-nums w-8 text-left">{h2h.awayWins}</span>
+          </div>
+          <span className="text-sm font-medium text-text flex-1 min-w-0 truncate text-right">{awayTeam}</span>
         </div>
 
         <div className="flex h-2 rounded-full overflow-hidden mb-4">
@@ -97,11 +86,11 @@ export function FormSection({ homeTeam, awayTeam, form, h2h, analysis }: FormSec
 
         {h2h.recentGames.length > 0 && (
           <div className="flex flex-col gap-2">
-            {h2h.recentGames.slice(0, 3).map((g, i) => (
+            {h2h.recentGames.map((g, i) => (
               <div key={i} className="flex items-center justify-between text-xs text-text-secondary">
-                <span className="text-muted w-24">{g.date}</span>
+                <span className="text-muted tabular-nums w-24">{g.date}</span>
                 <span className="font-medium text-text tabular-nums">{g.score}</span>
-                <span className="text-muted w-20 text-right">{g.competition}</span>
+                <span className="text-muted w-20 text-right truncate">{g.competition}</span>
               </div>
             ))}
           </div>

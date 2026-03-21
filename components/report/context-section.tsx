@@ -40,10 +40,10 @@ export function ContextSection({ context }: ContextSectionProps) {
       </p>
       <p className="text-xs text-muted mb-4">{context.date}{context.time ? ` · ${context.time}` : ''}</p>
 
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <span className="text-xl font-medium text-text text-center flex-1 min-w-0 break-words">{context.homeTeam}</span>
+      <div className="flex items-center justify-between gap-3 mb-4 min-h-14">
+        <span className="text-lg font-medium text-text text-center flex-1 min-w-0 leading-snug" style={{ textWrap: 'balance' }}>{context.homeTeam}</span>
         <span className="text-sm font-medium text-muted shrink-0">VS</span>
-        <span className="text-xl font-medium text-text text-center flex-1 min-w-0 break-words">{context.awayTeam}</span>
+        <span className="text-lg font-medium text-text text-center flex-1 min-w-0 leading-snug" style={{ textWrap: 'balance' }}>{context.awayTeam}</span>
       </div>
 
       {meta && (
