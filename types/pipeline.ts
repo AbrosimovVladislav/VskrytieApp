@@ -138,8 +138,7 @@ export interface AnalysisReport {
 // ─── Pipeline ───
 
 export interface PipelineInput {
-  query: string;
-  sport: string;
+  match: MatchInfo;
   league: string;
 }
 

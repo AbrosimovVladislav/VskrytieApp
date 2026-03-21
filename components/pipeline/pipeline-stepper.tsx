@@ -3,7 +3,6 @@
 import { PipelineStepProgress } from "@/types/pipeline";
 
 const STEP_NAMES = [
-  "Поиск матча",
   "Контекст и мотивация",
   "Форма команд",
   "История встреч",

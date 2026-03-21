@@ -5,9 +5,9 @@ import { PipelineInput, PipelineStepProgress } from "@/types/pipeline";
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as PipelineInput;
 
-  if (!body.query || !body.sport || !body.league) {
+  if (!body.match || !body.league) {
     return Response.json(
-      { error: "Missing required fields: query, sport, league" },
+      { error: "Missing required fields: match, league" },
       { status: 400 }
     );
   }
