@@ -165,19 +165,17 @@ export default function HomePage() {
           </div>
 
           {/* League Select */}
-          {leagues.length > 1 && (
-            <select
-              value={league}
-              onChange={(e) => setLeague(e.target.value)}
-              className="bg-bg-card border border-border-secondary rounded-[--radius-button] px-3 py-2.5 text-text text-sm"
-            >
-              {leagues.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-          )}
+          <select
+            value={league}
+            onChange={(e) => setLeague(e.target.value)}
+            className="bg-bg-card border border-border-secondary rounded-[--radius-button] px-3 py-2.5 text-text text-sm"
+          >
+            {leagues.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
 
           {/* Search Input */}
           <div className="relative">
