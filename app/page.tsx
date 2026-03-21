@@ -131,11 +131,6 @@ export default function HomePage() {
     setQuery("");
   }
 
-  function handleClarificationSelect(suggestion: string) {
-    setQuery(suggestion);
-    setState({ phase: "input" });
-  }
-
   return (
     <div className="p-4">
       <h1 className="font-display text-xl text-accent mb-6">ВСКРЫТИЕ</h1>
@@ -164,18 +159,22 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* League Select */}
-          <select
-            value={league}
-            onChange={(e) => setLeague(e.target.value)}
-            className="bg-bg-card border border-border-secondary rounded-[--radius-button] px-3 py-2.5 text-text text-sm"
-          >
+          {/* League Tabs */}
+          <div className="flex gap-2 flex-wrap">
             {leagues.map((l) => (
-              <option key={l.id} value={l.id}>
+              <button
+                key={l.id}
+                onClick={() => setLeague(l.id)}
+                className={`px-4 py-1.5 text-sm rounded-[--radius-tab] border transition-colors ${
+                  league === l.id
+                    ? "bg-accent-dim border-border-accent text-accent font-semibold"
+                    : "bg-bg-card border-border-secondary text-muted"
+                }`}
+              >
                 {l.name}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
 
           {/* Search Input */}
           <div className="relative">
@@ -204,24 +203,35 @@ export default function HomePage() {
       {/* Clarification Phase */}
       {state.phase === "clarification" && (
         <div className="flex flex-col gap-4">
-          <div className="bg-bg-card rounded-[--radius-card] border border-border p-4">
-            <p className="text-text-secondary text-sm mb-3">
+          <div className="bg-bg-card rounded-[--radius-card] border border-warning/30 p-4">
+            <p className="text-text-secondary text-sm">
               {state.data.message}
             </p>
-            {state.data.suggestions && state.data.suggestions.length > 0 && (
-              <div className="flex flex-col gap-2">
-                {state.data.suggestions.map((s, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleClarificationSelect(s)}
-                    className="bg-bg-inner text-text text-sm rounded-[--radius-tab] px-3 py-2 text-left transition-colors hover:bg-accent hover:text-bg-card-dark"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
+
+          {/* Search input for refining */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSearch();
+              }}
+              placeholder="Уточните запрос..."
+              className="w-full bg-bg-card border border-border-secondary rounded-[--radius-button] pl-9 pr-3 py-2.5 text-text text-sm placeholder:text-muted shadow-[--shadow-light]"
+            />
+          </div>
+
+          <button
+            onClick={handleSearch}
+            disabled={!query.trim()}
+            className="bg-accent text-bg-card-dark font-semibold text-sm h-12 rounded-[--radius-button] disabled:opacity-50 transition-all active:scale-[0.98]"
+          >
+            Искать снова
+          </button>
+
           <button
             onClick={handleReset}
             className="text-muted text-sm underline"
