@@ -206,8 +206,19 @@ export const AnalysisReportSchema = z.object({
   }),
 })
 
+// ── Match review (Claude reviewer picks best candidate) ──
+
+export const MatchReviewResultSchema = z.object({
+  confidence: z.enum(['high', 'low']).describe(
+    'high = at least 2 agents agree on both teams and date, low = agents conflict or data is insufficient',
+  ),
+  match: MatchContextSchema.nullable().describe('Best match result, or null if confidence is low and no reliable data'),
+  conflictSummary: z.string().optional().describe('Brief summary of conflicts between agents (when confidence is low)'),
+})
+
 // ── JSON Schemas for tool_use ──
 
+export const matchReviewJsonSchema = toJSONSchema(MatchReviewResultSchema, { target: 'draft-07' })
 export const matchContextJsonSchema = toJSONSchema(MatchContextSchema, { target: 'draft-07' })
 export const matchStatsJsonSchema = toJSONSchema(MatchStatsSchema, { target: 'draft-07' })
 export const matchContextFactorsJsonSchema = toJSONSchema(MatchContextFactorsSchema, { target: 'draft-07' })

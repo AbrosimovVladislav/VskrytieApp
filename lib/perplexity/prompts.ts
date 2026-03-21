@@ -1,21 +1,7 @@
-// ── Step 1: Match identification ──
+// ── Step 1: Match identification (multi-agent) ──
 
-export function identifyMatchPrompt(query: string, sport: string): string {
-  const today = new Date().toISOString().split('T')[0]
-
-  return `Ты — спортивный аналитик. Сегодня ${today}.
-
-Запрос: "${query}"
-Вид спорта: ${sport}
-
-Найди ближайший предстоящий матч по этому запросу. Определи ТОЧНО:
-- Какой это турнир и КАКАЯ СТАДИЯ (регулярный сезон, плей-офф, кубок, финал, полуфинал и т.д.)
-- Полные официальные названия команд
-- Дату, время и место проведения
-
-Верни ТОЛЬКО валидный JSON (без markdown, без \`\`\`json):
-{
-  "sport": "${sport}",
+const JSON_TEMPLATE = `{
+  "sport": "SPORT",
   "homeTeam": "полное официальное название",
   "awayTeam": "полное официальное название",
   "competition": "название лиги/турнира",
@@ -23,11 +9,165 @@ export function identifyMatchPrompt(query: string, sport: string): string {
   "date": "YYYY-MM-DD",
   "time": "HH:MM",
   "venue": "название арены/стадиона"
-}
+}`
+
+/**
+ * Agent 1: Direct match search — straightforward query
+ */
+export function identifyMatchDirectPrompt(query: string, sport: string): string {
+  const today = new Date().toISOString().split('T')[0]
+
+  return `Ты — спортивный аналитик. Сегодня ${today}.
+
+Запрос пользователя: "${query}"
+Вид спорта: ${sport}
+
+Найди ближайший ПРЕДСТОЯЩИЙ матч по этому запросу. Определи ТОЧНО:
+- Полные официальные названия ОБЕИХ команд (никогда не пиши "TBD" или "неизвестно")
+- Какой это турнир и КАКАЯ СТАДИЯ (регулярный сезон, плей-офф 1/8, 1/4, 1/2, финал и т.д.)
+- Дату, время и место проведения
+
+Если пара плей-офф уже определена — обе команды ИЗВЕСТНЫ, найди их.
+Если не можешь найти точный матч — найди ближайший матч этой команды.
+
+Верни ТОЛЬКО валидный JSON (без markdown, без \`\`\`json):
+${JSON_TEMPLATE.replace('SPORT', sport)}
 
 ВАЖНО:
+- ОБЯЗАТЕЛЬНО укажи обе команды по имени. Никогда "TBD", "—", "неизвестно"
 - Определи стадию турнира ТОЧНО (плей-офф ≠ регулярный сезон)
 - ТОЛЬКО JSON, никакого текста вокруг`
+}
+
+/**
+ * Agent 2: Schedule/calendar search — looks at upcoming schedule
+ */
+export function identifyMatchSchedulePrompt(query: string, sport: string): string {
+  const today = new Date().toISOString().split('T')[0]
+
+  return `Сегодня ${today}. Вид спорта: ${sport}.
+
+Найди РАСПИСАНИЕ ближайших матчей команды "${query}" на ближайшую неделю.
+Определи следующий предстоящий матч этой команды.
+
+Для каждого матча определи:
+- Полные официальные названия ОБЕИХ команд
+- Турнир, стадию (регулярка, плей-офф, кубок, финал)
+- Дату, время, место
+
+Верни информацию о БЛИЖАЙШЕМ матче в формате JSON (без markdown, без \`\`\`json):
+${JSON_TEMPLATE.replace('SPORT', sport)}
+
+КРИТИЧЕСКИ ВАЖНО:
+- Укажи ПОЛНЫЕ НАЗВАНИЯ обеих команд (не "TBD", не "соперник")
+- Если идёт плей-офф — пары УЖЕ определены, найди соперника
+- ТОЛЬКО JSON`
+}
+
+/**
+ * Agent 3: News-based search — finds match info from recent news
+ */
+export function identifyMatchNewsPrompt(query: string, sport: string): string {
+  const today = new Date().toISOString().split('T')[0]
+
+  return `Сегодня ${today}.
+
+Найди в последних новостях информацию о ближайшем матче: "${query}" (${sport}).
+Ищи в спортивных новостях, анонсах матчей, превью.
+
+Определи из новостей:
+- Какие именно команды играют (полные официальные названия)
+- Какой турнир и какая стадия (плей-офф, регулярка, кубок)
+- Когда и где матч
+
+Верни ТОЛЬКО JSON (без markdown, без \`\`\`json):
+${JSON_TEMPLATE.replace('SPORT', sport)}
+
+ВАЖНО:
+- Обе команды должны быть названы ПОЛНЫМИ именами
+- Никогда не пиши "TBD", "неизвестно", "определится позже"
+- ТОЛЬКО JSON`
+}
+
+/**
+ * Claude reviewer prompt — compares agent results, returns confidence level
+ */
+export function reviewMatchResultsPrompt(
+  query: string,
+  sport: string,
+  candidates: Array<{ source: string; result: Record<string, unknown> | null; error?: string }>,
+): string {
+  const today = new Date().toISOString().split('T')[0]
+
+  const candidatesText = candidates
+    .map((c, i) => {
+      if (c.error) return `Агент ${i + 1} (${c.source}): ОШИБКА — ${c.error}`
+      return `Агент ${i + 1} (${c.source}):\n${JSON.stringify(c.result, null, 2)}`
+    })
+    .join('\n\n')
+
+  return `Сегодня ${today}. Ты — ревьюер результатов поиска матча.
+
+Исходный запрос пользователя: "${query}"
+Вид спорта: ${sport}
+
+Поисковые агенты искали информацию о матче. Вот их результаты:
+
+${candidatesText}
+
+Твоя задача — оценить УВЕРЕННОСТЬ в результатах:
+
+**confidence: "high"** если:
+- Хотя бы 2 агента нашли ОДИНАКОВЫЕ команды (homeTeam + awayTeam совпадают)
+- Даты совпадают или отличаются не более чем на 1 день
+- Стадия турнира согласована
+
+**confidence: "low"** если:
+- Агенты нашли РАЗНЫХ соперников
+- Даты сильно отличаются (>1 день)
+- Только 1 агент вернул результат и он сомнительный
+- Команда указана как "TBD", "неизвестно" и т.д.
+
+Если confidence HIGH — собери лучший результат в поле match, объединив данные от всех агентов.
+Если confidence LOW — верни match: null и опиши конфликт в conflictSummary.
+
+КРИТЕРИИ ЛУЧШЕГО РЕЗУЛЬТАТА:
+- Обе команды по полному названию (не "TBD")
+- Точная стадия турнира (плей-офф > регулярка)
+- Дата в будущем (сегодня: ${today})
+- Предпочитай результат с venue и time`
+}
+
+/**
+ * Refinement round prompt — searches with context from previous round
+ */
+export function identifyMatchRefinementPrompt(
+  query: string,
+  sport: string,
+  previousResults: string,
+  conflictSummary: string,
+): string {
+  const today = new Date().toISOString().split('T')[0]
+
+  return `Сегодня ${today}. Вид спорта: ${sport}.
+
+Нужно УТОЧНИТЬ информацию о матче. Исходный запрос: "${query}"
+
+Предыдущие поисковые агенты дали противоречивые результаты:
+${previousResults}
+
+Конфликт: ${conflictSummary}
+
+Найди ТОЧНУЮ информацию о ближайшем предстоящем матче этой команды.
+Проверь: расписание лиги, турнирную сетку плей-офф, последние анонсы матчей.
+
+Верни ТОЛЬКО JSON (без markdown):
+${JSON_TEMPLATE.replace('SPORT', sport)}
+
+КРИТИЧЕСКИ ВАЖНО:
+- Обе команды ПОЛНЫМ НАЗВАНИЕМ (не "TBD", не "неизвестно")
+- Точная стадия (плей-офф/регулярка/кубок)
+- ТОЛЬКО JSON`
 }
 
 // ── Step 2: Stats, form, H2H, odds ──

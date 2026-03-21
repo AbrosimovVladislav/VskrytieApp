@@ -1,9 +1,22 @@
-import { MatchContextSchema, MatchStatsSchema, MatchContextFactorsSchema } from '@/lib/claude/schemas'
-import { identifyMatchPrompt, collectStatsPrompt, collectContextPrompt } from './prompts'
+import { MatchContextSchema, MatchStatsSchema, MatchContextFactorsSchema, MatchReviewResultSchema, matchReviewJsonSchema } from '@/lib/claude/schemas'
+import {
+  identifyMatchDirectPrompt,
+  identifyMatchSchedulePrompt,
+  identifyMatchNewsPrompt,
+  identifyMatchRefinementPrompt,
+  reviewMatchResultsPrompt,
+  collectStatsPrompt,
+  collectContextPrompt,
+} from './prompts'
 import type { MatchData } from '@/lib/types/report'
 import { z } from 'zod'
+import Anthropic from '@anthropic-ai/sdk'
 
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions'
+
+const claude = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
 
 async function queryPerplexity(prompt: string): Promise<string> {
   const apiKey = process.env.PERPLEXITY_API_KEY
@@ -47,17 +60,184 @@ function parseJson<T>(content: string, schema: z.ZodType<T>): T {
   return schema.parse(parsed)
 }
 
-// ── Step 1: Identify match ──
+// Try to parse, return null on failure
+function tryParseJson<T>(content: string, schema: z.ZodType<T>): T | null {
+  try {
+    return parseJson(content, schema)
+  } catch {
+    return null
+  }
+}
+
+// ── Step 1: Multi-agent match identification ──
+
+type SearchCandidate = {
+  source: string
+  result: z.infer<typeof MatchContextSchema> | null
+  error?: string
+}
+
+async function searchAgent(
+  name: string,
+  prompt: string,
+): Promise<SearchCandidate> {
+  try {
+    const content = await queryPerplexity(prompt)
+    const result = tryParseJson(content, MatchContextSchema)
+    if (result && isTBD(result)) {
+      return { source: name, result: null, error: 'Result contains TBD/unknown team' }
+    }
+    return { source: name, result }
+  } catch (err) {
+    return { source: name, result: null, error: err instanceof Error ? err.message : String(err) }
+  }
+}
+
+function isTBD(result: z.infer<typeof MatchContextSchema>): boolean {
+  const tbd = /^(tbd|tbа|неизвестн|определится|—|-|\.{2,}|\?)$/i
+  return tbd.test(result.homeTeam.trim()) || tbd.test(result.awayTeam.trim())
+}
+
+type ReviewResult = z.infer<typeof MatchReviewResultSchema>
+
+async function reviewWithClaude(
+  query: string,
+  sport: string,
+  candidates: SearchCandidate[],
+): Promise<ReviewResult> {
+  const valid = candidates.filter(c => c.result != null)
+
+  // No valid candidates — low confidence, nothing to review
+  if (valid.length === 0) {
+    return {
+      confidence: 'low',
+      match: null,
+      conflictSummary: candidates.map(c => `${c.source}: ${c.error ?? 'parse failed'}`).join('; '),
+    }
+  }
+
+  // Only one valid candidate — still review for TBD/quality but likely accept
+  // All candidates agree on both teams — high confidence, skip Claude call
+  if (valid.length >= 2) {
+    const teams = valid.map(c => `${c.result!.homeTeam}|${c.result!.awayTeam}`)
+    const allSame = teams.every(t => t === teams[0])
+    if (allSame) {
+      console.log('[identify] All', valid.length, 'agents agree — skipping Claude review')
+      return { confidence: 'high', match: valid[0].result! }
+    }
+  }
+
+  console.log('[identify] Reviewing', valid.length, 'candidates with Claude')
+
+  const reviewPrompt = reviewMatchResultsPrompt(
+    query,
+    sport,
+    candidates.map(c => ({
+      source: c.source,
+      result: c.result as Record<string, unknown> | null,
+      error: c.error,
+    })),
+  )
+
+  const response = await claude.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: reviewPrompt }],
+    tools: [{
+      name: 'submit_review',
+      description: 'Submit match review with confidence level.',
+      input_schema: matchReviewJsonSchema as Anthropic.Tool.InputSchema,
+    }],
+    tool_choice: { type: 'tool', name: 'submit_review' },
+  })
+
+  const toolBlock = response.content.find(
+    (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use' && b.name === 'submit_review',
+  )
+
+  if (!toolBlock) {
+    throw new Error('Claude reviewer did not call submit_review')
+  }
+
+  return MatchReviewResultSchema.parse(toolBlock.input)
+}
+
+const MAX_ROUNDS = 2
 
 export async function identifyMatch(
   query: string,
   sport: string,
+  onProgress?: (message: string) => void,
 ): Promise<z.infer<typeof MatchContextSchema>> {
-  console.log('[perplexity] Step 1: identifying match')
-  const content = await queryPerplexity(identifyMatchPrompt(query, sport))
-  const result = parseJson(content, MatchContextSchema)
-  console.log('[perplexity] Match identified:', result.homeTeam, 'vs', result.awayTeam, '-', result.competition, result.round)
-  return result
+  let allCandidates: SearchCandidate[] = []
+
+  // ── Round 1: 3 parallel search agents ──
+  console.log('[identify] Round 1: 3 parallel search agents for:', query)
+  onProgress?.('Ищем матч (3 агента)...')
+
+  const round1 = await Promise.all([
+    searchAgent('direct', identifyMatchDirectPrompt(query, sport)),
+    searchAgent('schedule', identifyMatchSchedulePrompt(query, sport)),
+    searchAgent('news', identifyMatchNewsPrompt(query, sport)),
+  ])
+
+  allCandidates.push(...round1)
+  logCandidates(round1, 1)
+
+  const review1 = await reviewWithClaude(query, sport, allCandidates)
+  console.log('[identify] Round 1 confidence:', review1.confidence)
+
+  if (review1.confidence === 'high' && review1.match) {
+    console.log('[identify] Final:', review1.match.homeTeam, 'vs', review1.match.awayTeam)
+    return review1.match
+  }
+
+  // ── Round 2: 3 more agents with refined prompts ──
+  console.log('[identify] Low confidence, starting round 2')
+  onProgress?.('Уточняем результаты (ещё 3 агента)...')
+
+  const previousResults = allCandidates
+    .filter(c => c.result)
+    .map(c => `${c.source}: ${c.result!.homeTeam} vs ${c.result!.awayTeam}, ${c.result!.date}, ${c.result!.competition}`)
+    .join('\n')
+
+  const conflict = review1.conflictSummary ?? 'Результаты агентов расходятся'
+
+  const round2 = await Promise.all([
+    searchAgent('refine-1', identifyMatchRefinementPrompt(query, sport, previousResults, conflict)),
+    searchAgent('refine-2', identifyMatchRefinementPrompt(query + ' расписание', sport, previousResults, conflict)),
+    searchAgent('refine-3', identifyMatchRefinementPrompt(query + ' следующий матч', sport, previousResults, conflict)),
+  ])
+
+  allCandidates.push(...round2)
+  logCandidates(round2, 2)
+
+  const review2 = await reviewWithClaude(query, sport, allCandidates)
+  console.log('[identify] Round 2 confidence:', review2.confidence)
+
+  if (review2.match) {
+    console.log('[identify] Final:', review2.match.homeTeam, 'vs', review2.match.awayTeam)
+    return review2.match
+  }
+
+  // Last resort: take the best valid candidate even with low confidence
+  const anyValid = allCandidates.find(c => c.result != null)
+  if (anyValid?.result) {
+    console.log('[identify] Fallback to best available:', anyValid.result.homeTeam, 'vs', anyValid.result.awayTeam)
+    return anyValid.result
+  }
+
+  throw new Error(`Failed to identify match after ${MAX_ROUNDS} rounds. Conflicts: ${review2.conflictSummary}`)
+}
+
+function logCandidates(candidates: SearchCandidate[], round: number) {
+  for (const c of candidates) {
+    if (c.result) {
+      console.log(`[identify] R${round} ${c.source}: ${c.result.homeTeam} vs ${c.result.awayTeam} (${c.result.competition}, ${c.result.round})`)
+    } else {
+      console.log(`[identify] R${round} ${c.source}: FAILED —`, c.error)
+    }
+  }
 }
 
 // ── Step 2: Collect stats, form, H2H, odds ──

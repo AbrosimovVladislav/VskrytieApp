@@ -86,11 +86,13 @@ export async function POST(req: NextRequest) {
 
         send({ type: 'id', id: report.id })
 
-        // ── Perplexity Step 1: Identify match ──
-        send({ type: 'step', step: 'collect', message: 'Определяем матч...' })
-        console.log('[analyze] Perplexity Step 1: identifying match')
+        // ── Perplexity Step 1: Identify match (multi-agent) ──
+        send({ type: 'step', step: 'collect', message: 'Ищем матч (3 агента)...' })
+        console.log('[analyze] Step 1: identifying match (multi-agent)')
 
-        const matchContext = await identifyMatch(query, sport)
+        const matchContext = await identifyMatch(query, sport, (msg) => {
+          send({ type: 'step', step: 'collect', message: msg })
+        })
         console.log('[analyze] Match identified:', matchContext.homeTeam, 'vs', matchContext.awayTeam)
 
         // Send match_found + context section immediately
