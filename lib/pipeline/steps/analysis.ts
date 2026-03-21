@@ -189,6 +189,41 @@ interface ClaudeAnalysis {
   };
 }
 
+function parseClaudeJson(text: string): ClaudeAnalysis {
+  // 1. Попробуем напрямую
+  try {
+    return JSON.parse(text);
+  } catch { /* fallthrough */ }
+
+  // 2. Извлечь JSON из markdown
+  const codeBlock = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlock) {
+    try {
+      return JSON.parse(codeBlock[1]);
+    } catch { /* fallthrough */ }
+  }
+
+  // 3. Найти первый { ... последний }
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start !== -1 && end > start) {
+    const slice = text.slice(start, end + 1);
+    try {
+      return JSON.parse(slice);
+    } catch { /* fallthrough */ }
+
+    // 4. Очистка: убрать управляющие символы внутри строк
+    const cleaned = slice.replace(/[\x00-\x1f]/g, (ch) =>
+      ch === "\n" || ch === "\r" || ch === "\t" ? " " : ""
+    );
+    try {
+      return JSON.parse(cleaned);
+    } catch { /* fallthrough */ }
+  }
+
+  throw new Error(`Claude вернул невалидный JSON: ${text.slice(0, 300)}`);
+}
+
 export async function runAnalysis(input: AnalysisInput): Promise<AnalysisReport> {
   const { match, motivation, form, h2h, stats, squadContext, odds, leagueConfig } = input;
 
@@ -201,25 +236,21 @@ export async function runAnalysis(input: AnalysisInput): Promise<AnalysisReport>
     model: "claude-sonnet-4-20250514",
     max_tokens: 2048,
     system: systemPrompt,
-    messages: [{ role: "user", content: userPrompt }],
+    messages: [
+      { role: "user", content: userPrompt },
+      { role: "assistant", content: "{" },
+    ],
   });
 
-  const text = response.content
+  const rawText = response.content
     .filter((block) => block.type === "text")
     .map((block) => block.text)
     .join("");
 
-  let analysis: ClaudeAnalysis;
-  try {
-    analysis = JSON.parse(text);
-  } catch {
-    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) {
-      analysis = JSON.parse(jsonMatch[1]);
-    } else {
-      throw new Error(`Claude вернул невалидный JSON: ${text.slice(0, 200)}`);
-    }
-  }
+  // Собираем полный JSON (prefill "{" + ответ)
+  const text = "{" + rawText;
+
+  const analysis = parseClaudeJson(text);
 
   return {
     match: {
