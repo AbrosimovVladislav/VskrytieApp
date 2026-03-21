@@ -36,6 +36,27 @@ const BET_MARKET_NAMES: Record<string, string> = {
   handicap: "Фора",
 };
 
+const STATS_DISPLAY: Record<string, string> = {
+  goalsFor: "Атака",
+  avgGoalsFor: "Атака",
+  goalsAgainst: "Оборона",
+  avgGoalsAgainst: "Оборона",
+  powerPlayPct: "Большинство",
+  penaltyKillPct: "Меньшинство",
+};
+
+function filterStats(
+  data: Record<string, string | number>
+): Record<string, string | number> {
+  const result: Record<string, string | number> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (key in STATS_DISPLAY) {
+      result[STATS_DISPLAY[key]] = value;
+    }
+  }
+  return result;
+}
+
 function buildSystemPrompt(config: LeagueConfig): string {
   const analyst = SPORT_ANALYST[config.sport] || config.sport;
   const markets = config.betMarkets
@@ -44,22 +65,29 @@ function buildSystemPrompt(config: LeagueConfig): string {
 
   return `Ты — профессиональный ${analyst} аналитик. Проанализируй данные о предстоящем матче и верни структурированный JSON-ответ.
 
-Для каждой секции:
-- "data" — ключевые факты из предоставленных данных
-- "analysis" — твой вывод в 1-2 предложения
+Правила стиля:
+- Пиши коротко, ёмко, интересно — как инсайдер, а не как учебник
+- Каждый analysis — ровно 1-2 предложения, суть без воды
+- context: для каждой команды 1-2 предложения — самое важное из кадров/травм/новостей, пиши живо и по делу
+- recommendation.summary — 1-2 предложения, чёткий вывод
+- reasoning в ставках — 1 предложение
 
-В секции "recommendation":
-- "summary" — общий вывод 2-3 предложения
-- "bets" — ровно 2 рекомендации по рынкам: ${markets}
-- Для каждой ставки: market, pick, confidence (high/medium/low), reasoning
+Секции:
+- motivation.analysis: 1-2 предложения
+- form.analysis: 1-2 предложения
+- h2h.analysis: 1-2 предложения
+- stats.analysis: 1-2 предложения
+- context: team1_analysis и team2_analysis — по 1-2 предложения на каждую команду
+- odds.analysis: 1-2 предложения
+- recommendation: summary 1-2 предложения, ровно 2 ставки по рынкам: ${markets}
 
-Ответ — ТОЛЬКО валидный JSON, без markdown, без \`\`\`json. Схема ответа:
+Ответ — ТОЛЬКО валидный JSON, без markdown, без \`\`\`json. Схема:
 {
   "motivation": { "analysis": "string" },
   "form": { "analysis": "string" },
   "h2h": { "analysis": "string" },
   "stats": { "analysis": "string" },
-  "context": { "analysis": "string" },
+  "context": { "team1_analysis": "string", "team2_analysis": "string" },
   "odds": { "analysis": "string" },
   "recommendation": {
     "summary": "string",
@@ -136,7 +164,7 @@ interface ClaudeAnalysis {
   form: { analysis: string };
   h2h: { analysis: string };
   stats: { analysis: string };
-  context: { analysis: string };
+  context: { team1_analysis: string; team2_analysis: string };
   odds: { analysis: string };
   recommendation: {
     summary: string;
@@ -168,7 +196,6 @@ export async function runAnalysis(input: AnalysisInput): Promise<AnalysisReport>
   try {
     analysis = JSON.parse(text);
   } catch {
-    // Попробуем извлечь JSON из markdown-блока
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {
       analysis = JSON.parse(jsonMatch[1]);
@@ -205,15 +232,12 @@ export async function runAnalysis(input: AnalysisInput): Promise<AnalysisReport>
       analysis: analysis.h2h.analysis,
     },
     stats: {
-      data: { team1: stats.team1, team2: stats.team2 },
+      data: { team1: filterStats(stats.team1), team2: filterStats(stats.team2) },
       analysis: analysis.stats.analysis,
     },
     context: {
-      data: {
-        team1: `${squadContext.team1.injuries}. ${squadContext.team1.media_summary}`,
-        team2: `${squadContext.team2.injuries}. ${squadContext.team2.media_summary}`,
-      },
-      analysis: analysis.context.analysis,
+      team1_analysis: analysis.context.team1_analysis,
+      team2_analysis: analysis.context.team2_analysis,
     },
     odds: {
       data: { bookmakers: odds.bookmakers },

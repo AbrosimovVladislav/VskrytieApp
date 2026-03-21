@@ -52,11 +52,24 @@ export function PipelineResult({ report }: PipelineResultProps) {
       </Section>
 
       <Section title="История встреч" analysis={report.h2h.analysis}>
-        {report.h2h.data.games.map((g, i) => (
-          <p key={i} className="text-text-secondary text-sm">
-            {g.date} — {g.score} ({g.venue})
-          </p>
-        ))}
+        <div className="flex flex-col gap-2">
+          {report.h2h.data.games.map((g, i) => {
+            const parts = g.score.split(/[:\-–]/);
+            const s1 = parts[0]?.trim();
+            const s2 = parts[1]?.trim();
+            return (
+              <div key={i} className="flex items-center gap-3 bg-bg-card-dark rounded-lg px-3 py-2">
+                <span className="text-text-secondary text-xs w-20 shrink-0">{g.date}</span>
+                <div className="flex items-center gap-2 flex-1 justify-center">
+                  <span className="text-text text-sm font-medium tabular-nums">{s1 ?? "?"}</span>
+                  <span className="text-text-secondary text-xs">:</span>
+                  <span className="text-text text-sm font-medium tabular-nums">{s2 ?? "?"}</span>
+                </div>
+                <span className="text-text-secondary text-[10px] w-16 text-right truncate">{g.venue}</span>
+              </div>
+            );
+          })}
+        </div>
         {debugLogs?.filter(l => l.step.startsWith("H2H") || l.step.startsWith("История")).map((l, i) => (
           <DebugRaw key={i} label={l.step} data={l.raw} />
         ))}
@@ -81,19 +94,22 @@ export function PipelineResult({ report }: PipelineResultProps) {
         ))}
       </Section>
 
-      <Section title="Контекст" analysis={report.context.analysis}>
-        <p className="text-text-secondary text-sm mb-1">
-          <span className="text-text">{report.match.team1}:</span>{" "}
-          {report.context.data.team1}
-        </p>
-        <p className="text-text-secondary text-sm">
-          <span className="text-text">{report.match.team2}:</span>{" "}
-          {report.context.data.team2}
-        </p>
+      <div className="bg-bg-card rounded-[--radius-card] border border-border p-4">
+        <h3 className="font-semibold text-sm text-text mb-3">Контекст</h3>
+        <div className="flex flex-col gap-2">
+          <div>
+            <p className="text-text text-sm mb-0.5">{report.match.team1}</p>
+            <p className="text-accent text-xs italic">{report.context.team1_analysis}</p>
+          </div>
+          <div>
+            <p className="text-text text-sm mb-0.5">{report.match.team2}</p>
+            <p className="text-accent text-xs italic">{report.context.team2_analysis}</p>
+          </div>
+        </div>
         {debugLogs?.filter(l => l.step.startsWith("Контекст") || l.step.startsWith("Кадры")).map((l, i) => (
           <DebugRaw key={i} label={l.step} data={l.raw} />
         ))}
-      </Section>
+      </div>
 
       <Section title="Коэффициенты" analysis={report.odds.analysis}>
         <div className="grid grid-cols-6 gap-1 text-xs">

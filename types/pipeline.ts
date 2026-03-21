@@ -126,7 +126,7 @@ export interface AnalysisReport {
   form: { data: { team1_last5: GameResult[]; team2_last5: GameResult[] }; analysis: string };
   h2h: { data: { games: H2HGame[] }; analysis: string };
   stats: { data: { team1: Record<string, string | number>; team2: Record<string, string | number> }; analysis: string };
-  context: { data: { team1: string; team2: string }; analysis: string };
+  context: { team1_analysis: string; team2_analysis: string };
   odds: { data: { bookmakers: BookmakerOdds[] }; analysis: string };
 
   recommendation: {
