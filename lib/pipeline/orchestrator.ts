@@ -46,7 +46,7 @@ export async function runPipeline(
 
   const debugLogs: DebugLog[] = [];
 
-  const [motivation, formResult, h2h, stats, squadContext, odds] = await Promise.all([
+  const [motivationResult, formResult, h2hResult, statsResult, squadContextResult, oddsResult] = await Promise.all([
     fetchContextMotivation({ match, leagueConfig }).then((r) => {
       reportStep(1, "done");
       return r;
@@ -73,8 +73,21 @@ export async function runPipeline(
     }),
   ]);
 
+  const motivation = motivationResult.data;
   const form = formResult.data;
-  debugLogs.push(...formResult.debugLogs);
+  const h2h = h2hResult.data;
+  const stats = statsResult.data;
+  const squadContext = squadContextResult.data;
+  const odds = oddsResult.data;
+
+  debugLogs.push(
+    ...motivationResult.debugLogs,
+    ...formResult.debugLogs,
+    ...h2hResult.debugLogs,
+    ...statsResult.debugLogs,
+    ...squadContextResult.debugLogs,
+    ...oddsResult.debugLogs,
+  );
 
   // Step 7: Analysis
   reportStep(7, "in_progress");
@@ -89,6 +102,9 @@ export async function runPipeline(
     leagueConfig,
   });
   reportStep(7, "done");
+
+  // Прицепляем дебаг-логи к report (он точно доходит до фронта)
+  report._debugLogs = debugLogs;
 
   return { match, motivation, form, h2h, stats, squadContext, odds, report, debugLogs };
 }

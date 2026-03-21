@@ -1,14 +1,14 @@
 "use client";
 
-import { AnalysisReport, DebugLog, GameResult } from "@/types/pipeline";
+import { AnalysisReport, GameResult } from "@/types/pipeline";
 import { DebugRaw } from "@/components/debug/debug-raw";
 
 interface PipelineResultProps {
   report: AnalysisReport;
-  debugLogs?: DebugLog[];
 }
 
-export function PipelineResult({ report, debugLogs }: PipelineResultProps) {
+export function PipelineResult({ report }: PipelineResultProps) {
+  const debugLogs = report._debugLogs;
   return (
     <div className="flex flex-col gap-4 p-4">
 
@@ -32,6 +32,9 @@ export function PipelineResult({ report, debugLogs }: PipelineResultProps) {
           <span className="text-text">{report.match.team2}:</span>{" "}
           {report.motivation.data.team2}
         </p>
+        {debugLogs?.filter(l => l.step.startsWith("Мотивация")).map((l, i) => (
+          <DebugRaw key={i} label={l.step} data={l.raw} />
+        ))}
       </Section>
 
       <Section title="Форма" analysis={report.form.analysis}>
@@ -43,7 +46,6 @@ export function PipelineResult({ report, debugLogs }: PipelineResultProps) {
           teamName={report.match.team2}
           games={report.form.data.team2_last5}
         />
-        <DebugRaw label="debugLogs check" data={debugLogs ? `${debugLogs.length} logs` : "debugLogs is undefined"} />
         {debugLogs?.filter(l => l.step.startsWith("Форма")).map((l, i) => (
           <DebugRaw key={i} label={l.step} data={l.raw} />
         ))}
@@ -54,6 +56,9 @@ export function PipelineResult({ report, debugLogs }: PipelineResultProps) {
           <p key={i} className="text-text-secondary text-sm">
             {g.date} — {g.score} ({g.venue})
           </p>
+        ))}
+        {debugLogs?.filter(l => l.step.startsWith("H2H") || l.step.startsWith("История")).map((l, i) => (
+          <DebugRaw key={i} label={l.step} data={l.raw} />
         ))}
       </Section>
 
@@ -71,6 +76,9 @@ export function PipelineResult({ report, debugLogs }: PipelineResultProps) {
             />
           ))}
         </div>
+        {debugLogs?.filter(l => l.step.startsWith("Стат")).map((l, i) => (
+          <DebugRaw key={i} label={l.step} data={l.raw} />
+        ))}
       </Section>
 
       <Section title="Контекст" analysis={report.context.analysis}>
@@ -82,6 +90,9 @@ export function PipelineResult({ report, debugLogs }: PipelineResultProps) {
           <span className="text-text">{report.match.team2}:</span>{" "}
           {report.context.data.team2}
         </p>
+        {debugLogs?.filter(l => l.step.startsWith("Контекст") || l.step.startsWith("Кадры")).map((l, i) => (
+          <DebugRaw key={i} label={l.step} data={l.raw} />
+        ))}
       </Section>
 
       <Section title="Коэффициенты" analysis={report.odds.analysis}>
@@ -96,6 +107,9 @@ export function PipelineResult({ report, debugLogs }: PipelineResultProps) {
             <OddsRow key={b.name} bk={b} />
           ))}
         </div>
+        {debugLogs?.filter(l => l.step.startsWith("Коэфф") || l.step.startsWith("Odds")).map((l, i) => (
+          <DebugRaw key={i} label={l.step} data={l.raw} />
+        ))}
       </Section>
 
       {/* Recommendation */}

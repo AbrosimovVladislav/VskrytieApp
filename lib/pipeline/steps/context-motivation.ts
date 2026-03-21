@@ -1,4 +1,4 @@
-import { MatchInfo, LeagueConfig, MotivationData } from "@/types/pipeline";
+import { MatchInfo, LeagueConfig, MotivationData, DebugLog } from "@/types/pipeline";
 import { queryPerplexity } from "@/lib/perplexity/client";
 
 interface ContextMotivationInput {
@@ -6,9 +6,14 @@ interface ContextMotivationInput {
   leagueConfig: LeagueConfig;
 }
 
+interface ContextMotivationResult {
+  data: MotivationData;
+  debugLogs: DebugLog[];
+}
+
 export async function fetchContextMotivation(
   input: ContextMotivationInput
-): Promise<MotivationData> {
+): Promise<ContextMotivationResult> {
   const { match, leagueConfig } = input;
 
   const jsonFormat = `{
@@ -40,7 +45,10 @@ export async function fetchContextMotivation(
 ${jsonFormat}`;
 
   const raw = await queryPerplexity(prompt);
-  return parseMotivationResponse(raw);
+  return {
+    data: parseMotivationResponse(raw),
+    debugLogs: [{ step: "Мотивация", prompt, raw }],
+  };
 }
 
 function parseMotivationResponse(raw: string): MotivationData {

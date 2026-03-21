@@ -133,6 +133,9 @@ export interface AnalysisReport {
     summary: string;
     bets: RecommendedBet[];
   };
+
+  /** Временное поле для отладки — удалить после */
+  _debugLogs?: DebugLog[];
 }
 
 // ─── Pipeline ───
