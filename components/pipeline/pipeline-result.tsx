@@ -51,8 +51,9 @@ export function PipelineResult({ report }: PipelineResultProps) {
       <MotivationSection
         team1Name={report.match.team1}
         team2Name={report.match.team2}
-        team1Data={report.motivation.data.team1}
-        team2Data={report.motivation.data.team2}
+        team1={report.motivation.data.team1}
+        team2={report.motivation.data.team2}
+        stage={report.motivation.data.stage}
         analysis={report.motivation.analysis}
         debugSlot={debugFor(d, "мотив")}
       />
@@ -86,6 +87,8 @@ export function PipelineResult({ report }: PipelineResultProps) {
       <ContextSection
         team1Name={report.match.team1}
         team2Name={report.match.team2}
+        team1Squad={report.context.team1}
+        team2Squad={report.context.team2}
         team1Analysis={report.context.team1_analysis}
         team2Analysis={report.context.team2_analysis}
         debugSlot={debugFor(d, "контекст") || debugFor(d, "кадр")}

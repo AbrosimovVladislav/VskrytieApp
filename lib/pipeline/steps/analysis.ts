@@ -263,8 +263,9 @@ export async function runAnalysis(input: AnalysisInput): Promise<AnalysisReport>
     },
     motivation: {
       data: {
-        team1: `${motivation.team1.position}, ${motivation.team1.fighting_for.toLowerCase()}`,
-        team2: `${motivation.team2.position}, ${motivation.team2.fighting_for.toLowerCase()}`,
+        team1: motivation.team1,
+        team2: motivation.team2,
+        stage: motivation.stage,
       },
       analysis: analysis.motivation.analysis,
     },
@@ -284,6 +285,8 @@ export async function runAnalysis(input: AnalysisInput): Promise<AnalysisReport>
       analysis: analysis.stats.analysis,
     },
     context: {
+      team1: squadContext.team1,
+      team2: squadContext.team2,
       team1_analysis: analysis.context.team1_analysis,
       team2_analysis: analysis.context.team2_analysis,
     },

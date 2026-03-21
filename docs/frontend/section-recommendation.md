@@ -1,6 +1,10 @@
 # Секция: Рекомендация
 
-Итоговая рекомендация — 2 ставки с обоснованием.
+Итоговая рекомендация — ставки с обоснованием.
+
+## Компонент
+
+`components/report/section-recommendation.tsx` → `RecommendationSection`, `Disclaimer`
 
 ## Данные
 
@@ -15,12 +19,6 @@
       pick: string;         // "П1"
       confidence: "high" | "medium" | "low";
       reasoning: string;    // "ЦСКА дома выиграл 80% матчей..."
-    },
-    {
-      market: string;       // "Тотал"
-      pick: string;         // "ТБ 4.5"
-      confidence: "high" | "medium" | "low";
-      reasoning: string;
     }
   ]
 }
@@ -30,19 +28,19 @@
 
 ```
 ┌──────────────────────────────┐
-│ 🎯 РЕКОМЕНДАЦИЯ             │
+│ РЕКОМЕНДАЦИЯ                 │  ← border-accent
 │                              │
-│ "На основе анализа..."       │
+│ "На основе анализа..."       │  ← text-accent italic
 │                              │
 │ ┌──────────────────────────┐ │
-│ │ Исход: П1                │ │
-│ │ Уверенность: ●●●○ HIGH   │ │
-│ │ ЦСКА дома выиграл 80%...  │ │
+│ │ Исход в основное время   │ │  ← market (мелкий)
+│ │ П1              ●●●○ HIGH│ │  ← pick (крупно) + confidence
+│ │ ЦСКА дома выиграл 80%...  │ │  ← reasoning
 │ └──────────────────────────┘ │
 │                              │
 │ ┌──────────────────────────┐ │
-│ │ Тотал: ТБ 4.5            │ │
-│ │ Уверенность: ●●○○ MEDIUM │ │
+│ │ Тотал                    │ │
+│ │ ТБ 4.5          ●●○○ MED│ │
 │ │ Средний тотал в H2H...   │ │
 │ └──────────────────────────┘ │
 └──────────────────────────────┘
@@ -50,14 +48,17 @@
 
 ## Стили
 
-- Карточка: AI-блок (`bg-bg-card-dark`)
-- Summary: `text-[14px] text-text-secondary`
-- Pick: `font-display text-accent text-[16px]`
-- Confidence:
+- Блок: `bg-bg-card-dark border border-border-accent rounded-[--radius-card] p-3`
+- Заголовок: `font-semibold text-accent text-[14px]`
+- Summary: `text-accent text-[13px] italic` (зелёный)
+- Карточка ставки: `bg-bg-overlay rounded-[12px] p-3 border border-border/50`
+- Market: `text-text-secondary text-[12px]` — сверху отдельной строкой
+- Pick: `font-display text-accent text-[16px]` — слева
+- Confidence dots (●●●○) + label — справа на той же строке
   - `high` → `text-positive`
   - `medium` → `text-warning`
   - `low` → `text-negative`
-- Reasoning: `text-[14px] text-text-secondary`
+- Reasoning: `text-text-secondary text-[13px]`
 
 ## Дисклеймер
 

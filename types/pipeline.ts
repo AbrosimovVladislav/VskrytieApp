@@ -122,11 +122,11 @@ export interface AnalysisReport {
     league: string;
   };
 
-  motivation: { data: { team1: string; team2: string }; analysis: string };
+  motivation: { data: { team1: TeamMotivation; team2: TeamMotivation; stage: string }; analysis: string };
   form: { data: { team1_last5: GameResult[]; team2_last5: GameResult[] }; analysis: string };
   h2h: { data: { games: H2HGame[] }; analysis: string };
   stats: { data: { team1: Record<string, string | number>; team2: Record<string, string | number> }; analysis: string };
-  context: { team1_analysis: string; team2_analysis: string };
+  context: { team1: TeamSquadContext; team2: TeamSquadContext; team1_analysis: string; team2_analysis: string };
   odds: { data: { bookmakers: BookmakerOdds[] }; analysis: string };
 
   recommendation: {

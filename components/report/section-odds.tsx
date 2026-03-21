@@ -38,38 +38,44 @@ export function OddsSection({
 
   return (
     <SectionWrapper title="Коэффициенты" analysis={analysis} debugSlot={debugSlot}>
-      <div className="flex flex-col gap-2">
-        {bookmakers.map((bk) => (
+      {/* Grid table: header row + bookmaker rows */}
+      <div className="bg-bg-card-dark rounded-[12px] overflow-hidden">
+        {/* Header */}
+        <div className="flex px-3 py-2 border-b border-border/30">
+          <div className="w-[80px] shrink-0" />
+          {ODDS_FIELDS.map((f) => (
+            <div key={f.key} className="flex-1 text-center">
+              <span className="text-text-secondary text-[10px] uppercase">{f.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Rows */}
+        {bookmakers.map((bk, idx) => (
           <div
             key={bk.name}
-            className="bg-bg-card-dark rounded-[12px] p-2.5"
+            className={`flex items-center px-3 py-2 ${
+              idx < bookmakers.length - 1 ? "border-b border-border/15" : ""
+            }`}
           >
-            <p className="text-text text-[13px] font-medium mb-1.5">
-              {bk.name}
-            </p>
-            <div className="flex gap-1">
-              {ODDS_FIELDS.map((f) => {
-                const val = bk[f.key];
-                const isBest = val === bestOdds[f.key];
-                return (
-                  <div
-                    key={f.key}
-                    className="flex-1 text-center"
-                  >
-                    <p className="text-text-secondary text-[10px] mb-0.5">
-                      {f.label}
-                    </p>
-                    <p
-                      className={`font-display text-[13px] tabular-nums ${
-                        isBest ? "text-accent font-semibold" : "text-text"
-                      }`}
-                    >
-                      {val.toFixed(2)}
-                    </p>
-                  </div>
-                );
-              })}
+            <div className="w-[80px] shrink-0">
+              <span className="text-text text-[12px] font-medium">{bk.name}</span>
             </div>
+            {ODDS_FIELDS.map((f) => {
+              const val = bk[f.key];
+              const isBest = val === bestOdds[f.key];
+              return (
+                <div key={f.key} className="flex-1 text-center">
+                  <span
+                    className={`font-display text-[12px] tabular-nums ${
+                      isBest ? "text-accent" : "text-text-secondary"
+                    }`}
+                  >
+                    {val.toFixed(2)}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>

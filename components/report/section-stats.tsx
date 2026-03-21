@@ -14,6 +14,11 @@ const STAT_LABELS: Record<string, string> = {
   penaltyKillPct: "Меньшинство %",
   penaltyMinutes: "Штраф мин/матч",
   shotsPerGame: "Броски/матч",
+  // Filtered categories from analysis.ts
+  "Атака": "Атака",
+  "Оборона": "Оборона",
+  "Большинство": "Большинство",
+  "Меньшинство": "Меньшинство",
 };
 
 interface StatsSectionProps {
@@ -40,16 +45,16 @@ export function StatsSection({
       {/* Legend */}
       <div className="flex items-center gap-4 mb-3 text-[11px]">
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-sm bg-accent" />
+          <div className="w-2 h-2 rounded-full bg-accent" />
           <span className="text-text-secondary">{team1Name}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-sm bg-text-secondary" />
+          <div className="w-2 h-2 rounded-full bg-text-secondary" />
           <span className="text-text-secondary">{team2Name}</span>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-3">
         {keys.map((key) => {
           const v1 = parseFloat(String(team1Stats[key]));
           const v2 = parseFloat(String(team2Stats[key]));
@@ -90,21 +95,21 @@ function StatBar({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-text-secondary text-[12px]">{label}</span>
-        <div className="flex gap-3 text-[12px] tabular-nums">
-          <span className="text-text font-medium">{val1}</span>
-          <span className="text-text-secondary">{val2}</span>
-        </div>
+      {/* Values on sides, label in center */}
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-text font-medium text-[13px] tabular-nums w-12">{val1}</span>
+        <span className="text-text-secondary text-[12px] text-center flex-1">{label}</span>
+        <span className="text-text-secondary text-[13px] tabular-nums w-12 text-right">{val2}</span>
       </div>
+      {/* Bars: team1 goes right-to-left, team2 goes left-to-right */}
       <div className="flex gap-1">
-        <div className="flex-1 h-[5px] bg-bg-card-dark rounded-full overflow-hidden">
+        <div className="flex-1 h-[6px] bg-bg-card-dark rounded-full overflow-hidden flex justify-end">
           <div
             className="h-full bg-accent rounded-full transition-all duration-500"
             style={{ width: `${pct1}%` }}
           />
         </div>
-        <div className="flex-1 h-[5px] bg-bg-card-dark rounded-full overflow-hidden">
+        <div className="flex-1 h-[6px] bg-bg-card-dark rounded-full overflow-hidden">
           <div
             className="h-full bg-text-secondary rounded-full transition-all duration-500"
             style={{ width: `${pct2}%` }}

@@ -1,6 +1,10 @@
 # Секция: Коэффициенты
 
-Таблица коэффициентов от 5 букмекеров.
+Коэффициенты от букмекеров — единая таблица-грид.
+
+## Компонент
+
+`components/report/section-odds.tsx` → `OddsSection`
 
 ## Данные
 
@@ -18,21 +22,26 @@
 
 ## Макет
 
-Таблица:
+Единая таблица с заголовком и строками:
 
 ```
-           П1    X    П2    ТБ4.5  ТМ4.5
-Фонбет    2.10  3.40  3.15  1.85   1.95
-Винлайн   2.05  3.50  3.20  1.80   2.00
-PARI      2.15  3.35  3.10  1.82   1.98
-Олимпбет  2.08  3.45  3.18  1.87   1.93
-Лига Ст.  2.12  3.38  3.12  1.83   1.97
+┌──────────────────────────────────┐
+│           П1   X    П2  ТБ   ТМ │  ← заголовок
+│ ─────────────────────────────── │
+│ Фонбет  2.10 3.40 3.15 1.85 1.95│  ← строка
+│ Винлайн 2.05 3.50 3.20 1.80 2.00│
+│ PARI    2.08 3.45 3.18 1.82 1.98│
+└──────────────────────────────────┘
 ```
 
 ## Стили
 
-- Заголовки столбцов: `text-text-secondary text-[12px] font-semibold`
-- Названия БК: `text-text text-[14px]`
-- Коэффициенты: `font-display text-[14px] tabular-nums`
-- Лучший (максимальный) коэффициент в столбце: `text-accent font-semibold`
-- Анализ Claude внизу секции
+- Обёртка: `bg-bg-card-dark rounded-[12px] overflow-hidden`
+- Заголовок: `px-3 py-2 border-b border-border/30`
+- Лейблы (П1, X, П2, ТБ, ТМ): `text-text-secondary text-[10px] uppercase flex-1 text-center`
+- Строки: `px-3 py-2`, разделитель `border-b border-border/15`
+- Название БК: `w-[80px] shrink-0 text-text text-[12px] font-medium`
+- Коэффициенты: `font-display text-[12px] tabular-nums flex-1 text-center`
+- Лучший в столбце: `text-accent`
+- Обычный: `text-text-secondary`
+- Анализ Claude: `text-accent italic`

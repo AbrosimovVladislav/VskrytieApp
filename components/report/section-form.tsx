@@ -35,6 +35,13 @@ export function FormSection({
   );
 }
 
+const RESULT_CONFIG: Record<GameResult["result"], { bg: string; text: string; label: string }> = {
+  W: { bg: "bg-positive", text: "text-bg", label: "В" },
+  L: { bg: "bg-negative", text: "text-white", label: "П" },
+  OTW: { bg: "bg-positive/60", text: "text-bg", label: "ОТВ" },
+  OTL: { bg: "bg-negative/60", text: "text-white", label: "ОТП" },
+};
+
 function TeamForm({
   teamName,
   games,
@@ -45,44 +52,41 @@ function TeamForm({
   const wins = games.filter(
     (g) => g.result === "W" || g.result === "OTW"
   ).length;
-  const losses = games.filter(
-    (g) => g.result === "L" || g.result === "OTL"
-  ).length;
+  const total = games.length;
+  const winPct = total > 0 ? Math.round((wins / total) * 100) : 0;
 
   return (
     <div className="bg-bg-card-dark rounded-[12px] p-3">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-text font-medium text-[14px]">{teamName}</span>
-        <span className="text-text-secondary text-[12px]">
-          {wins}В {losses}П
-        </span>
+      <div className="flex items-center justify-between mb-2.5">
+        <span className="text-text font-medium text-[13px]">{teamName}</span>
+        <span className="font-display text-[12px] text-accent">{winPct}%</span>
       </div>
-      <div className="flex gap-2">
+
+      {/* Result strip — colored segments */}
+      <div className="flex gap-1 mb-2">
+        {games.map((g, i) => {
+          const cfg = RESULT_CONFIG[g.result];
+          return (
+            <div
+              key={i}
+              className={`flex-1 h-8 ${cfg.bg} rounded-md flex items-center justify-center`}
+            >
+              <span className={`text-[11px] font-semibold ${cfg.text}`}>
+                {cfg.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Opponent + score row */}
+      <div className="flex gap-1">
         {games.map((g, i) => (
-          <ResultDot key={i} result={g.result} />
+          <div key={i} className="flex-1 text-center">
+            <p className="text-[9px] text-text-secondary truncate">{g.score}</p>
+          </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function ResultDot({ result }: { result: GameResult["result"] }) {
-  const config: Record<
-    GameResult["result"],
-    { bg: string; label: string }
-  > = {
-    W: { bg: "bg-positive", label: "В" },
-    L: { bg: "bg-negative", label: "П" },
-    OTW: { bg: "bg-positive opacity-60", label: "ОТВ" },
-    OTL: { bg: "bg-negative opacity-60", label: "ОТП" },
-  };
-
-  const { bg, label } = config[result];
-
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div className={`w-3 h-3 rounded-full ${bg}`} />
-      <span className="text-[10px] text-text-secondary">{label}</span>
     </div>
   );
 }

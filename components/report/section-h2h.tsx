@@ -45,9 +45,9 @@ export function H2HSection({
                 <div className="absolute inset-y-0 right-0 w-1 bg-negative" />
               )}
               <div className="flex items-center px-3 py-2">
-                {/* Team 1 — abbreviated if needed */}
+                {/* Team 1 — flexible width, no truncation */}
                 <span
-                  className={`text-[13px] w-[70px] truncate ${
+                  className={`text-[12px] min-w-0 flex-1 ${
                     team1Wins
                       ? "text-positive font-medium"
                       : "text-text-secondary"
@@ -56,7 +56,7 @@ export function H2HSection({
                   {team1Name}
                 </span>
                 {/* Score centered */}
-                <div className="flex items-center gap-1 flex-1 justify-center">
+                <div className="flex items-center gap-1.5 shrink-0 mx-2">
                   <span
                     className={`text-[16px] font-semibold tabular-nums ${
                       team1Wins ? "text-positive" : "text-text"
@@ -73,9 +73,9 @@ export function H2HSection({
                     {isNaN(n2) ? "?" : n2}
                   </span>
                 </div>
-                {/* Team 2 */}
+                {/* Team 2 — flexible width, no truncation */}
                 <span
-                  className={`text-[13px] w-[70px] truncate text-right ${
+                  className={`text-[12px] min-w-0 flex-1 text-right ${
                     team2Wins
                       ? "text-negative font-medium"
                       : "text-text-secondary"

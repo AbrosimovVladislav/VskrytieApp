@@ -1,43 +1,47 @@
-# Секция: Контекст (кадры, новости)
+# Секция: Кадры и контекст
 
-Травмы, дисквалификации, медиа-выжимка.
+Травмы, медиа-сводка, ротации — структурированно.
+
+## Компонент
+
+`components/report/section-context.tsx` → `ContextSection`
 
 ## Данные
 
-Из `AnalysisReport.context`:
+Из `AnalysisReport.context` — **структурированные** `TeamSquadContext` + AI-анализ:
 
 ```ts
 {
-  data: {
-    team1: string;  // Сводка: травмы + медиа + ротация
-    team2: string;
-  },
-  analysis: string;
+  team1: TeamSquadContext;  // { injuries, media_summary, rotation_expected }
+  team2: TeamSquadContext;
+  team1_analysis: string;   // AI-анализ (fallback если squad пуст)
+  team2_analysis: string;
 }
 ```
 
 ## Макет
 
-Две карточки (аналогично секции мотивации):
+Две карточки. Каждая — имя + структурированные блоки с иконками:
 
 ```
 ┌──────────────────────────────┐
 │ ЦСКА                         │
-│ Травмы: нападающий Иванов    │
-│ (колено, 2-3 недели)         │
-│ Пресса: отмечают нестабильную│
-│ игру в обороне               │
+│ 🏥 Травмы                    │
+│    Нападающий Иванов (колено)│  ← text-warning если есть травмы
+│ 📰 Медиа                     │
+│    Нестабильная оборона      │
+│ 🔄 Ротация                   │
+│    Без изменений             │
 └──────────────────────────────┘
-┌──────────────────────────────┐
-│ СКА                          │
-│ Травмы: нет                  │
-│ Пресса: хвалят серию из 4    │
-│ побед подряд                 │
-└──────────────────────────────┘
-
-💬 "У ЦСКА кадровые потери..."
 ```
 
-- Текст: `text-[14px]`
-- Ключевые слова (травмы, ротация): `text-warning` или `text-negative`
-- Анализ Claude внизу
+## Стили
+
+- Карточка: `bg-bg-card-dark rounded-[12px] p-3`
+- Имя команды: `font-medium text-[14px] text-text`
+- Иконка: `text-[14px] shrink-0`
+- Лейбл (Травмы/Медиа/Ротация): `text-[11px] text-text-secondary`
+- Значение: `text-[13px] leading-relaxed`
+  - С травмами: `text-warning`
+  - Обычный: `text-text-secondary`
+- Fallback (если squad пуст): `border-l-2 border-border` стиль с analysis текстом
