@@ -1,5 +1,6 @@
 "use client";
 
+import { ReactNode } from "react";
 import { SectionWrapper } from "./section-wrapper";
 
 interface MotivationSectionProps {
@@ -8,6 +9,7 @@ interface MotivationSectionProps {
   team1Data: string;
   team2Data: string;
   analysis: string;
+  debugSlot?: ReactNode;
 }
 
 export function MotivationSection({
@@ -16,9 +18,10 @@ export function MotivationSection({
   team1Data,
   team2Data,
   analysis,
+  debugSlot,
 }: MotivationSectionProps) {
   return (
-    <SectionWrapper title="Мотивация" analysis={analysis}>
+    <SectionWrapper title="Мотивация" analysis={analysis} debugSlot={debugSlot}>
       <div className="flex flex-col gap-2">
         <TeamMotivationCard name={team1Name} data={team1Data} />
         <TeamMotivationCard name={team2Name} data={team2Data} />
@@ -30,8 +33,8 @@ export function MotivationSection({
 function TeamMotivationCard({ name, data }: { name: string; data: string }) {
   return (
     <div className="bg-bg-card-dark rounded-[12px] p-3">
-      <p className="font-semibold text-[16px] text-text mb-1">{name}</p>
-      <p className="text-text-secondary text-[14px] leading-relaxed">{data}</p>
+      <p className="font-medium text-[14px] text-text mb-1">{name}</p>
+      <p className="text-text-secondary text-[13px] leading-relaxed">{data}</p>
     </div>
   );
 }

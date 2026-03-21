@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, ReactNode } from "react";
 
 interface SectionWrapperProps {
   title: string;
   analysis?: string;
   variant?: "default" | "dark";
-  children: React.ReactNode;
+  children: ReactNode;
+  debugSlot?: ReactNode;
 }
 
 export function SectionWrapper({
@@ -14,6 +15,7 @@ export function SectionWrapper({
   analysis,
   variant = "default",
   children,
+  debugSlot,
 }: SectionWrapperProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -44,19 +46,20 @@ export function SectionWrapper({
   return (
     <div
       ref={ref}
-      className={`rounded-[--radius-card] border p-4 ${bg} transition-all duration-200 ease-out ${
+      className={`rounded-[--radius-card] border p-3 ${bg} transition-all duration-200 ease-out ${
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
       }`}
     >
       <h3 className="font-semibold text-[14px] text-text mb-3">{title}</h3>
-      <div className="mb-3">{children}</div>
+      <div className={analysis ? "mb-3" : ""}>{children}</div>
       {analysis && (
         <div className="border-t border-border pt-3">
-          <p className="text-text-secondary text-[14px] italic leading-relaxed">
+          <p className="text-accent text-[13px] italic leading-relaxed">
             {analysis}
           </p>
         </div>
       )}
+      {debugSlot}
     </div>
   );
 }

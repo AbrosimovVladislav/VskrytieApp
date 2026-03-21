@@ -1,6 +1,6 @@
 "use client";
 
-import { AnalysisReport } from "@/types/pipeline";
+import { AnalysisReport, DebugLog } from "@/types/pipeline";
 import { MatchHeader } from "@/components/report/match-header";
 import { MotivationSection } from "@/components/report/section-motivation";
 import { FormSection } from "@/components/report/section-form";
@@ -13,16 +13,32 @@ import {
   Disclaimer,
 } from "@/components/report/section-recommendation";
 import { DebugRaw } from "@/components/debug/debug-raw";
+import { ReactNode } from "react";
 
 interface PipelineResultProps {
   report: AnalysisReport;
 }
 
+function debugFor(logs: DebugLog[] | undefined, prefix: string): ReactNode {
+  if (!logs) return null;
+  const matched = logs.filter((l) =>
+    l.step.toLowerCase().includes(prefix.toLowerCase())
+  );
+  if (matched.length === 0) return null;
+  return (
+    <>
+      {matched.map((l, i) => (
+        <DebugRaw key={i} label={l.step} data={l.raw} />
+      ))}
+    </>
+  );
+}
+
 export function PipelineResult({ report }: PipelineResultProps) {
-  const debugLogs = report._debugLogs;
+  const d = report._debugLogs;
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-3 px-2 py-3">
       <MatchHeader
         team1={report.match.team1}
         team2={report.match.team2}
@@ -38,6 +54,7 @@ export function PipelineResult({ report }: PipelineResultProps) {
         team1Data={report.motivation.data.team1}
         team2Data={report.motivation.data.team2}
         analysis={report.motivation.analysis}
+        debugSlot={debugFor(d, "мотив")}
       />
 
       <FormSection
@@ -46,6 +63,7 @@ export function PipelineResult({ report }: PipelineResultProps) {
         team1Games={report.form.data.team1_last5}
         team2Games={report.form.data.team2_last5}
         analysis={report.form.analysis}
+        debugSlot={debugFor(d, "форм")}
       />
 
       <H2HSection
@@ -53,6 +71,7 @@ export function PipelineResult({ report }: PipelineResultProps) {
         team2Name={report.match.team2}
         games={report.h2h.data.games}
         analysis={report.h2h.analysis}
+        debugSlot={debugFor(d, "h2h") || debugFor(d, "истор")}
       />
 
       <StatsSection
@@ -61,6 +80,7 @@ export function PipelineResult({ report }: PipelineResultProps) {
         team1Stats={report.stats.data.team1}
         team2Stats={report.stats.data.team2}
         analysis={report.stats.analysis}
+        debugSlot={debugFor(d, "стат")}
       />
 
       <ContextSection
@@ -68,11 +88,13 @@ export function PipelineResult({ report }: PipelineResultProps) {
         team2Name={report.match.team2}
         team1Analysis={report.context.team1_analysis}
         team2Analysis={report.context.team2_analysis}
+        debugSlot={debugFor(d, "контекст") || debugFor(d, "кадр")}
       />
 
       <OddsSection
         bookmakers={report.odds.data.bookmakers}
         analysis={report.odds.analysis}
+        debugSlot={debugFor(d, "коэфф") || debugFor(d, "odds")}
       />
 
       <RecommendationSection
@@ -81,15 +103,6 @@ export function PipelineResult({ report }: PipelineResultProps) {
       />
 
       <Disclaimer />
-
-      {/* Debug logs (dev only) */}
-      {debugLogs && debugLogs.length > 0 && (
-        <div className="flex flex-col gap-2">
-          {debugLogs.map((l, i) => (
-            <DebugRaw key={i} label={l.step} data={l.raw} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

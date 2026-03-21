@@ -1,5 +1,6 @@
 "use client";
 
+import { ReactNode } from "react";
 import { H2HGame } from "@/types/pipeline";
 import { SectionWrapper } from "./section-wrapper";
 
@@ -8,6 +9,7 @@ interface H2HSectionProps {
   team2Name: string;
   games: H2HGame[];
   analysis: string;
+  debugSlot?: ReactNode;
 }
 
 export function H2HSection({
@@ -15,9 +17,14 @@ export function H2HSection({
   team2Name,
   games,
   analysis,
+  debugSlot,
 }: H2HSectionProps) {
   return (
-    <SectionWrapper title={`Встречи в сезоне (${games.length})`} analysis={analysis}>
+    <SectionWrapper
+      title={`Встречи в сезоне (${games.length})`}
+      analysis={analysis}
+      debugSlot={debugSlot}
+    >
       <div className="flex flex-col gap-1.5">
         {games.map((g, i) => {
           const parts = g.score.split(/[:\-–]/);
@@ -37,9 +44,10 @@ export function H2HSection({
               {team2Wins && (
                 <div className="absolute inset-y-0 right-0 w-1 bg-negative" />
               )}
-              <div className="flex items-center px-3 py-2.5">
+              <div className="flex items-center px-3 py-2">
+                {/* Team 1 — abbreviated if needed */}
                 <span
-                  className={`text-[14px] flex-1 truncate ${
+                  className={`text-[13px] w-[70px] truncate ${
                     team1Wins
                       ? "text-positive font-medium"
                       : "text-text-secondary"
@@ -47,9 +55,10 @@ export function H2HSection({
                 >
                   {team1Name}
                 </span>
-                <div className="flex items-center gap-1.5 mx-3">
+                {/* Score centered */}
+                <div className="flex items-center gap-1 flex-1 justify-center">
                   <span
-                    className={`text-lg font-semibold tabular-nums ${
+                    className={`text-[16px] font-semibold tabular-nums ${
                       team1Wins ? "text-positive" : "text-text"
                     }`}
                   >
@@ -57,15 +66,16 @@ export function H2HSection({
                   </span>
                   <span className="text-text-secondary text-[12px]">:</span>
                   <span
-                    className={`text-lg font-semibold tabular-nums ${
+                    className={`text-[16px] font-semibold tabular-nums ${
                       team2Wins ? "text-negative" : "text-text"
                     }`}
                   >
                     {isNaN(n2) ? "?" : n2}
                   </span>
                 </div>
+                {/* Team 2 */}
                 <span
-                  className={`text-[14px] flex-1 truncate text-right ${
+                  className={`text-[13px] w-[70px] truncate text-right ${
                     team2Wins
                       ? "text-negative font-medium"
                       : "text-text-secondary"
@@ -78,7 +88,7 @@ export function H2HSection({
                 <span className="text-[10px] text-text-secondary/60">
                   {g.date}
                 </span>
-                <span className="text-[10px] text-text-secondary/60">
+                <span className="text-[10px] text-text-secondary/60 truncate ml-2">
                   {g.venue}
                 </span>
               </div>
