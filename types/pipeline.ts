@@ -150,6 +150,12 @@ export interface PipelineStepProgress {
   status: PipelineStepStatus;
 }
 
+export interface DebugLog {
+  step: string;
+  prompt: string;
+  raw: string;
+}
+
 export interface PipelineResult {
   match: MatchInfo;
   motivation: MotivationData;
@@ -159,4 +165,5 @@ export interface PipelineResult {
   squadContext: SquadContextData;
   odds: OddsData;
   report: AnalysisReport;
+  debugLogs?: DebugLog[];
 }

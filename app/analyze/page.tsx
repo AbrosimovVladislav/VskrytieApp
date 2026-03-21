@@ -108,7 +108,7 @@ export default function AnalyzePage() {
             &larr; Новый анализ
           </button>
         </div>
-        <PipelineResult report={result.report} />
+        <PipelineResult report={result.report} debugLogs={result.debugLogs} />
       </div>
     );
   }

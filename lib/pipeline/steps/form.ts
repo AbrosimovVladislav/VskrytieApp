@@ -1,4 +1,4 @@
-import { MatchInfo, LeagueConfig, FormData, GameResult } from "@/types/pipeline";
+import { MatchInfo, LeagueConfig, FormData, GameResult, DebugLog } from "@/types/pipeline";
 import { queryPerplexity } from "@/lib/perplexity/client";
 
 interface FormInput {
@@ -6,24 +6,32 @@ interface FormInput {
   leagueConfig: LeagueConfig;
 }
 
-export async function fetchForm(input: FormInput): Promise<FormData> {
+interface FormResult {
+  data: FormData;
+  debugLogs: DebugLog[];
+}
+
+export async function fetchForm(input: FormInput): Promise<FormResult> {
   const { match, leagueConfig } = input;
 
-  const [team1Games, team2Games] = await Promise.all([
+  const [team1Result, team2Result] = await Promise.all([
     fetchTeamForm(match.team1, leagueConfig),
     fetchTeamForm(match.team2, leagueConfig),
   ]);
 
   return {
-    team1_last5: team1Games,
-    team2_last5: team2Games,
+    data: {
+      team1_last5: team1Result.games,
+      team2_last5: team2Result.games,
+    },
+    debugLogs: [team1Result.debug, team2Result.debug],
   };
 }
 
 async function fetchTeamForm(
   teamName: string,
   leagueConfig: LeagueConfig
-): Promise<GameResult[]> {
+): Promise<{ games: GameResult[]; debug: DebugLog }> {
   const jsonFormat = `[
   { "date": "YYYY-MM-DD", "opponent": "соперник", "score": "Г:Г", "home": true, "overtime": false },
   { "date": "YYYY-MM-DD", "opponent": "соперник", "score": "Г:Г", "home": false, "overtime": true }
@@ -46,8 +54,12 @@ async function fetchTeamForm(
 ${jsonFormat}`;
 
   const raw = await queryPerplexity(prompt);
-  console.log(`[form] ${teamName} raw:`, raw.substring(0, 500));
-  return parseGames(raw);
+  const games = parseGames(raw);
+
+  return {
+    games,
+    debug: { step: `Форма: ${teamName}`, prompt, raw },
+  };
 }
 
 function parseGames(raw: string): GameResult[] {

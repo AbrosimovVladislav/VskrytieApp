@@ -2,6 +2,7 @@ import {
   PipelineInput,
   PipelineResult,
   PipelineStepProgress,
+  DebugLog,
 } from "@/types/pipeline";
 import { getLeagueConfig } from "@/lib/config/leagues";
 import { fetchContextMotivation } from "./steps/context-motivation";
@@ -43,7 +44,9 @@ export async function runPipeline(
   reportStep(5, "in_progress");
   reportStep(6, "in_progress");
 
-  const [motivation, form, h2h, stats, squadContext, odds] = await Promise.all([
+  const debugLogs: DebugLog[] = [];
+
+  const [motivation, formResult, h2h, stats, squadContext, odds] = await Promise.all([
     fetchContextMotivation({ match, leagueConfig }).then((r) => {
       reportStep(1, "done");
       return r;
@@ -70,6 +73,9 @@ export async function runPipeline(
     }),
   ]);
 
+  const form = formResult.data;
+  debugLogs.push(...formResult.debugLogs);
+
   // Step 7: Analysis
   reportStep(7, "in_progress");
   const report = await runAnalysis({
@@ -84,5 +90,5 @@ export async function runPipeline(
   });
   reportStep(7, "done");
 
-  return { match, motivation, form, h2h, stats, squadContext, odds, report };
+  return { match, motivation, form, h2h, stats, squadContext, odds, report, debugLogs };
 }
