@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { AnalysisReport, DebugLog } from "@/types/pipeline";
+import { AnalysisReport, DebugLog, GameResult } from "@/types/pipeline";
+import { DebugRaw } from "@/components/debug/debug-raw";
 
 interface PipelineResultProps {
   report: AnalysisReport;
@@ -11,10 +11,6 @@ interface PipelineResultProps {
 export function PipelineResult({ report, debugLogs }: PipelineResultProps) {
   return (
     <div className="flex flex-col gap-4 p-4">
-      {/* Debug Panel */}
-      {debugLogs && debugLogs.length > 0 && (
-        <DebugPanel logs={debugLogs} />
-      )}
 
       {/* Match Header */}
       <div className="bg-bg-card rounded-[--radius-card] border border-border p-4">
@@ -47,6 +43,9 @@ export function PipelineResult({ report, debugLogs }: PipelineResultProps) {
           teamName={report.match.team2}
           games={report.form.data.team2_last5}
         />
+        {debugLogs?.filter(l => l.step.startsWith("Форма")).map((l, i) => (
+          <DebugRaw key={i} label={l.step} data={l.raw} />
+        ))}
       </Section>
 
       <Section title="История встреч" analysis={report.h2h.analysis}>
@@ -215,43 +214,6 @@ function OddsRow({
   );
 }
 
-function DebugPanel({ logs }: { logs: DebugLog[] }) {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
-
-  return (
-    <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-[--radius-card] p-4">
-      <h3 className="font-semibold text-sm text-yellow-400 mb-3">
-        DEBUG: Perplexity Raw Responses
-      </h3>
-      {logs.map((log, i) => (
-        <div key={i} className="mb-2 last:mb-0">
-          <button
-            onClick={() => setOpenIndex(openIndex === i ? null : i)}
-            className="text-yellow-300 text-xs font-medium hover:text-yellow-200 w-full text-left"
-          >
-            {openIndex === i ? "▼" : "▶"} {log.step}
-          </button>
-          {openIndex === i && (
-            <div className="mt-2 space-y-2">
-              <div>
-                <p className="text-yellow-500 text-[10px] uppercase mb-1">Prompt:</p>
-                <pre className="bg-black/40 rounded p-2 text-[11px] text-yellow-200/80 whitespace-pre-wrap overflow-x-auto max-h-40 overflow-y-auto">
-                  {log.prompt}
-                </pre>
-              </div>
-              <div>
-                <p className="text-yellow-500 text-[10px] uppercase mb-1">Raw Response:</p>
-                <pre className="bg-black/40 rounded p-2 text-[11px] text-green-300/80 whitespace-pre-wrap overflow-x-auto max-h-60 overflow-y-auto">
-                  {log.raw}
-                </pre>
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function ConfidenceBadge({ level }: { level: "high" | "medium" | "low" }) {
   const styles = {
