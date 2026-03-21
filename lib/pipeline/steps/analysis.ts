@@ -36,11 +36,10 @@ export async function runAnalysis(input: AnalysisInput): Promise<AnalysisReport>
     },
     motivation: {
       data: {
-        team1: "ЦСКА на 3-м месте, борется за домашнюю площадку в плей-офф. Каждое очко критично.",
-        team2: "СКА лидирует с запасом, но хочет сохранить первую строчку.",
+        team1: formatMotivation(input.motivation.team1),
+        team2: formatMotivation(input.motivation.team2),
       },
-      analysis:
-        "ЦСКА более мотивирован — им нужна победа для укрепления позиций. СКА может позволить себе тактические эксперименты.",
+      analysis: `Стадия: ${input.motivation.stage}`,
     },
     form: {
       data: {
@@ -94,6 +93,10 @@ export async function runAnalysis(input: AnalysisInput): Promise<AnalysisReport>
       ],
     },
   };
+}
+
+function formatMotivation(team: { position: string; fighting_for: string; priority: string }): string {
+  return `${team.position}. ${team.fighting_for}. Приоритет: ${team.priority}`;
 }
 
 function delay(ms: number) {
