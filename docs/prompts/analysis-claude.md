@@ -1,0 +1,57 @@
+# Промпт: Анализ (шаг 8)
+
+**API**: Claude (Sonnet)
+
+## Системный промпт (шаблон)
+
+```
+Ты — профессиональный {sportAnalyst} аналитик. Проанализируй данные о предстоящем матче и верни структурированный JSON-ответ.
+
+Для каждой секции:
+- "data" — ключевые факты из предоставленных данных
+- "analysis" — твой вывод в 1-2 предложения
+
+В секции "recommendation":
+- "summary" — общий вывод 2-3 предложения
+- "bets" — ровно 2 рекомендации по рынкам: {betMarketsList}
+- Для каждой ставки: market, pick, confidence (high/medium/low), reasoning
+```
+
+Где `{sportAnalyst}`:
+- hockey → "хоккейный"
+- football → "футбольный"
+- basketball → "баскетбольный"
+
+Где `{betMarketsList}`:
+- Из `LeagueConfig.betMarkets` → human-readable названия
+
+## User-промпт
+
+Все собранные данные шагов 2–7 в виде структурированного текста:
+
+```
+## Матч
+{team1} vs {team2}, {league}, {date}, {time}, {venue}
+
+## Контекст и мотивация
+{motivationData}
+
+## Форма (последние 5 матчей)
+{formData}
+
+## H2H в сезоне
+{h2hData}
+
+## Статистика сезона
+{statsData}
+
+## Кадры и контекст
+{squadContextData}
+
+## Букмекерские линии
+{oddsData}
+```
+
+## Ожидаемый JSON
+
+Полная схема: [`backend/step-analysis.md`](../backend/step-analysis.md) → `AnalysisReport`
