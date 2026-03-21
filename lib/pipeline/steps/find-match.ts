@@ -30,9 +30,15 @@ export async function findMatch(input: FindMatchInput): Promise<FindMatchResult>
   // Round 1: 3 parallel agents with different prompts
   const candidates = await runParallelSearch(input, today, nowMsk);
 
-  // Filter: only matches that haven't started yet
+  // Filter: only complete matches that haven't started yet
   const valid = candidates.filter(
-    (c) => c.found && c.date && isMatchInFuture(c.date, c.time, today, nowMsk)
+    (c) =>
+      c.found &&
+      c.team1 &&
+      c.team2 &&
+      c.date &&
+      c.time &&
+      isMatchInFuture(c.date, c.time, today, nowMsk)
   );
 
   if (valid.length > 0) {
@@ -55,7 +61,7 @@ export async function findMatch(input: FindMatchInput): Promise<FindMatchResult>
 
   // Round 2: retry with stricter prompt if round 1 failed
   const retryCandidate = await retrySearch(input, today, nowMsk);
-  if (retryCandidate && retryCandidate.found && retryCandidate.date && isMatchInFuture(retryCandidate.date, retryCandidate.time, today, nowMsk)) {
+  if (retryCandidate && retryCandidate.found && retryCandidate.team1 && retryCandidate.team2 && retryCandidate.date && retryCandidate.time && isMatchInFuture(retryCandidate.date, retryCandidate.time, today, nowMsk)) {
     return {
       found: true,
       match: {
@@ -105,11 +111,13 @@ async function runParallelSearch(
 }`;
 
   const timeNote = `Сегодня ${today}, сейчас ${nowMsk} МСК. Матч подходит ТОЛЬКО если он ещё НЕ начался. Матчи в прошлом и уже идущие НЕ подходят.`;
+  const requireBoth = `ОБЯЗАТЕЛЬНО укажи ОБЕ команды (team1 — хозяева, team2 — гости). Если не можешь определить соперника — ставь found: false.`;
 
   const prompts = [
     // Agent 1: Direct schedule search
     `${timeNote}
 Найди ближайший ПРЕДСТОЯЩИЙ матч "${query}" в ${league} сезона ${season}.
+${requireBoth}
 Нужны: команда хозяев, команда гостей, дата, время (МСК), арена.
 Ответь строго в JSON без markdown:
 ${jsonFormat}`,
@@ -118,12 +126,14 @@ ${jsonFormat}`,
     `${timeNote}
 Посмотри расписание/календарь ${league} сезона ${season}.
 Какой следующий матч с участием "${query}" который ещё НЕ начался?
+${requireBoth}
 Ответь строго в JSON без markdown:
 ${jsonFormat}`,
 
     // Agent 3: News/announcements focused
     `${timeNote}
 Какой ближайший предстоящий матч команды "${query}" в лиге ${league} (сезон ${season})?
+${requireBoth}
 Ищи в новостях, анонсах, расписании. Если матч уже состоялся или идёт прямо сейчас — ищи следующий.
 Ответь строго в JSON без markdown:
 ${jsonFormat}`,
