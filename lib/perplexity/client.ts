@@ -56,7 +56,21 @@ async function queryPerplexity(prompt: string): Promise<string> {
 
 function parseJson<T>(content: string, schema: z.ZodType<T>): T {
   const jsonStr = extractJson(content)
-  const parsed = JSON.parse(jsonStr)
+
+  // Detect refusal responses from Perplexity
+  if (!jsonStr.startsWith('{') && !jsonStr.startsWith('[')) {
+    const preview = content.slice(0, 120)
+    throw new Error(`Perplexity returned text instead of JSON: "${preview}"`)
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(jsonStr)
+  } catch {
+    const preview = jsonStr.slice(0, 120)
+    throw new Error(`Invalid JSON from Perplexity: "${preview}"`)
+  }
+
   return schema.parse(parsed)
 }
 
@@ -242,12 +256,28 @@ function logCandidates(candidates: SearchCandidate[], round: number) {
 
 // ── Step 2: Collect stats, form, H2H, odds ──
 
+async function queryPerplexityWithRetry(prompt: string, label: string, maxRetries = 2): Promise<string> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const content = await queryPerplexity(prompt)
+    const jsonStr = extractJson(content)
+    if (jsonStr.startsWith('{') || jsonStr.startsWith('[')) {
+      return content
+    }
+    console.warn(`[perplexity] ${label} attempt ${attempt}: got text instead of JSON: "${content.slice(0, 80)}"`)
+    if (attempt < maxRetries) {
+      console.log(`[perplexity] ${label}: retrying...`)
+    }
+  }
+  throw new Error(`Perplexity refused to return JSON for ${label} after ${maxRetries} attempts`)
+}
+
 export async function collectStats(
   ctx: z.infer<typeof MatchContextSchema>,
 ): Promise<z.infer<typeof MatchStatsSchema>> {
   console.log('[perplexity] Step 2: collecting stats')
-  const content = await queryPerplexity(
+  const content = await queryPerplexityWithRetry(
     collectStatsPrompt(ctx.homeTeam, ctx.awayTeam, ctx.competition, ctx.round, ctx.date, ctx.sport),
+    'collectStats',
   )
   return parseJson(content, MatchStatsSchema)
 }
@@ -258,8 +288,9 @@ export async function collectContext(
   ctx: z.infer<typeof MatchContextSchema>,
 ): Promise<z.infer<typeof MatchContextFactorsSchema>> {
   console.log('[perplexity] Step 3: collecting context')
-  const content = await queryPerplexity(
+  const content = await queryPerplexityWithRetry(
     collectContextPrompt(ctx.homeTeam, ctx.awayTeam, ctx.competition, ctx.round, ctx.date, ctx.sport),
+    'collectContext',
   )
   return parseJson(content, MatchContextFactorsSchema)
 }

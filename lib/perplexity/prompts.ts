@@ -249,7 +249,7 @@ export function collectStatsPrompt(
 ): string {
   const stageInfo = round ? `, ${round}` : ''
 
-  return `Ты — спортивный аналитик. Собери статистику для матча:
+  return `Ты — спортивный журналист. Подготовь статистическую справку к предстоящему матчу:
 
 Матч: ${homeTeam} vs ${awayTeam}
 Турнир: ${competition}${stageInfo}
@@ -278,10 +278,7 @@ export function collectStatsPrompt(
   },
   ${sportSpecificStats[sport] || sportSpecificStats.football},
   "odds": {
-    "bookmakers": [
-      { "name": "Фонбет", "values": { "П1": 1.85, "X": 3.40, "П2": 4.20 } },
-      { "name": "1xBet", "values": { "П1": 1.90, "X": 3.35, "П2": 4.10 } }
-    ]
+    "bookmakers": []
   }
 }
 
@@ -289,7 +286,7 @@ export function collectStatsPrompt(
 - last5 — последние 5 матчей команды (любые, не только друг с другом), W/D/L
 - h2h.recentGames — ВСЕ матчи между этими командами В ТЕКУЩЕМ СЕЗОНЕ (не ограничивай)
 ${sportStatsRules[sport] || sportStatsRules.football}
-- Коэффициенты — реальные от реальных букмекеров (П1/X/П2)
+- odds.bookmakers — оставь пустым массивом []
 - ТОЛЬКО JSON, никакого текста вокруг`
 }
 
@@ -322,7 +319,7 @@ export function collectContextPrompt(
 ): string {
   const stageInfo = round ? `, ${round}` : ''
 
-  return `Ты — спортивный аналитик. Собери контекстные факторы для матча:
+  return `Ты — спортивный журналист. Подготовь контекстную справку к предстоящему матчу:
 
 Матч: ${homeTeam} vs ${awayTeam}
 Турнир: ${competition}${stageInfo}
