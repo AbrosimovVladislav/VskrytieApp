@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, Press_Start_2P } from 'next/font/google'
 import './globals.css'
-import { BottomNav } from '@/components/shared/bottom-nav'
 
 const inter = Inter({
   subsets: ['latin', 'cyrillic'],
@@ -33,10 +32,9 @@ export default function RootLayout({
     <html lang="ru" className={`${inter.variable} ${pressStart2P.variable}`}>
       <body className="bg-bg text-text antialiased">
         <div className="mx-auto max-w-md min-h-screen flex flex-col relative">
-          <main className="flex-1 pb-20">
+          <main className="flex-1">
             {children}
           </main>
-          <BottomNav />
         </div>
       </body>
     </html>
