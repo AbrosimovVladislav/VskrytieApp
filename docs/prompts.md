@@ -1,21 +1,16 @@
 # Промпты
 
-Все промпты шаблонизированы — лига, сезон, метрики, букмекеры подставляются из конфига лиги ([`league-configs.md`](league-configs.md)).
+## Perplexity API
 
-## Perplexity API (шаги 1–7)
-
-| Шаг | Промпт | Файл |
+| Шаг | Назначение | Файл |
 |---|---|---|
-| 1 | Поиск матча | [`prompts/find-match.md`](prompts/find-match.md) |
-| 2 | Контекст и мотивация | [`prompts/context-motivation.md`](prompts/context-motivation.md) |
-| 3 | Форма команд | [`prompts/form.md`](prompts/form.md) |
-| 4 | H2H | [`prompts/h2h.md`](prompts/h2h.md) |
-| 5 | Статистика сезона | [`prompts/stats.md`](prompts/stats.md) |
-| 6 | Кадры и контекст | [`prompts/squad-context.md`](prompts/squad-context.md) |
-| 7 | Букмекерские линии | [`prompts/odds.md`](prompts/odds.md) |
+| 1 (fallback) | Уточнение названия команды, если API-Sports не нашёл | Встроен в step-find-match |
+| 4 | Кадры и контекст (травмы, вратарь, ротация) | [`prompts/squad-context.md`](prompts/squad-context.md) |
 
-## Claude API (шаг 8)
+## Claude API
 
-| Шаг | Промпт | Файл |
+| Шаг | Назначение | Файл |
 |---|---|---|
-| 8 | Анализ и рекомендация | [`prompts/analysis-claude.md`](prompts/analysis-claude.md) |
+| 5 | Анализ и рекомендация | [`prompts/analysis-claude.md`](prompts/analysis-claude.md) |
+
+Промпты шаблонизированы — лига, дата, команды подставляются из данных и конфига лиги ([`league-configs.md`](league-configs.md)).

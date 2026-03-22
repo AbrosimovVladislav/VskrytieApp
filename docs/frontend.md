@@ -17,13 +17,10 @@
 
 Шаги для отображения:
 1. Поиск матча
-2. Контекст и мотивация
-3. Форма команд
-4. История встреч
-5. Статистика
-6. Кадры и новости
-7. Коэффициенты
-8. Анализ AI
+2. Коэффициенты
+3. Контекст
+4. Форма команд
+5. Анализ AI
 
 Подробнее: [`frontend/section-loader.md`](frontend/section-loader.md)
 
@@ -34,17 +31,13 @@
 | Секция | Документация |
 |---|---|
 | Шапка матча | [`frontend/section-header.md`](frontend/section-header.md) |
-| Мотивация | [`frontend/section-motivation.md`](frontend/section-motivation.md) |
-| Форма команд | [`frontend/section-form.md`](frontend/section-form.md) |
-| H2H | [`frontend/section-h2h.md`](frontend/section-h2h.md) |
-| Статистика | [`frontend/section-stats.md`](frontend/section-stats.md) |
-| Контекст | [`frontend/section-context.md`](frontend/section-context.md) |
 | Коэффициенты | [`frontend/section-odds.md`](frontend/section-odds.md) |
+| Контекст | [`frontend/section-context.md`](frontend/section-context.md) |
+| Форма команд | [`frontend/section-form.md`](frontend/section-form.md) |
 | Рекомендация | [`frontend/section-recommendation.md`](frontend/section-recommendation.md) |
 | Дисклеймер | Статичный текст внизу отчёта |
 
 ## Принципы
 
-- Набор метрик в секции "Статистика" рендерится **динамически** из данных, не захардкожен
 - Каждая секция — отдельный компонент
 - Skeleton-loading по `design.md`

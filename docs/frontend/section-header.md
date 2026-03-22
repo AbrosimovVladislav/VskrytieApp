@@ -16,7 +16,6 @@
   team2: string;   // "СКА"
   date: string;    // "25 марта 2026"
   time: string;    // "19:30 МСК"
-  venue: string;   // "Арена ЦСКА"
   league: string;  // "КХЛ"
 }
 ```
@@ -30,7 +29,6 @@
 │     ЦСКА    vs    СКА        │
 │                              │
 │  25 марта 2026 · 19:30 МСК  │
-│       Арена ЦСКА             │
 └──────────────────────────────┘
 ```
 
@@ -43,5 +41,5 @@
   - 15+: `text-[14px]`
 - Команды занимают `flex-1 min-w-0 wrap-break-word` — без truncate, полные названия
 - vs: `text-muted text-[14px] shrink-0`
-- Дата/время/арена: `text-text-secondary text-[13px]`
+- Дата/время: `text-text-secondary text-[13px]`
 - Карточка: `bg-bg-card rounded-[--radius-card] border border-border p-4 text-center`

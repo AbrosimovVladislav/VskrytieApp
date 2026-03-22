@@ -1,4 +1,4 @@
-# Шаг 6 — Кадры и контекст
+# Шаг 4 — Кадры и контекст
 
 **Источник**: Perplexity API
 **Промпт**: [`prompts/squad-context.md`](../prompts/squad-context.md)

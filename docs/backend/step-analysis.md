@@ -1,21 +1,18 @@
-# Шаг 8 — Анализ (Claude Sonnet)
+# Шаг 5 — Анализ (Claude Sonnet)
 
 **Источник**: Claude API
 **Промпт**: [`prompts/analysis-claude.md`](../prompts/analysis-claude.md)
 
 ## Вход
 
-Все данные, собранные на шагах 2–7:
+Все данные, собранные на шагах 2–4:
 
 ```ts
 {
   match: MatchInfo;
-  motivation: MotivationData;
-  form: FormData;
-  h2h: H2HData;
-  stats: StatsData;
-  squadContext: SquadContextData;
   odds: OddsData;
+  squadContext: SquadContextData;
+  form: FormData;
   leagueConfig: LeagueConfig;
 }
 ```
@@ -30,14 +27,11 @@
 
 ```ts
 interface AnalysisReport {
-  match: { team1: string; team2: string; date: string; time: string; venue: string; league: string };
+  match: { team1: string; team2: string; date: string; time: string; league: string };
 
-  motivation: { data: { team1: string; team2: string }; analysis: string };
-  form:       { data: { team1_last5: any[]; team2_last5: any[] }; analysis: string };
-  h2h:        { data: { games: any[] }; analysis: string };
-  stats:      { data: { team1: any; team2: any }; analysis: string };
-  context:    { data: { team1: string; team2: string }; analysis: string };
-  odds:       { data: { bookmakers: any[] }; analysis: string };
+  odds:    { data: { bookmakers: any[] }; analysis: string };
+  context: { data: { team1: string; team2: string }; analysis: string };
+  form:    { data: { team1_last5: any[]; team2_last5: any[] }; analysis: string };
 
   recommendation: {
     summary: string;

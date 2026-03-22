@@ -1,23 +1,31 @@
-# Шаг 7 — Букмекерские линии
+# Шаг 2 — Букмекерские линии
 
-**Источник**: Perplexity API
-**Промпт**: [`prompts/odds.md`](../prompts/odds.md)
+**Источник**: API-Sports Hockey v1
+**Эндпоинт**: `GET /odds?game={game_id}`
 
 ## Вход
 
 ```ts
 {
-  match: MatchInfo;
+  match: MatchInfo;        // game_id из шага 1
   leagueConfig: LeagueConfig; // bookmakers определяют список БК
 }
 ```
 
 ## Логика
 
-1. Из `leagueConfig.bookmakers` берём список БК
-2. Формируем промпт — коэффициенты от каждого БК
-3. Запрос в Perplexity
-4. Парсим ответ
+1. `GET /odds?game={game_id}`
+2. Из ответа API фильтруем букмекеров по `leagueConfig.bookmakers`
+3. Для маппинга ID букмекеров → названия: `GET /odds/bookmakers` (кэшируем)
+4. Для маппинга ID типов ставок → названия: `GET /odds/bets` (кэшируем)
+5. Извлекаем рынки: исход в основное время (П1/X/П2) + тотал (Б/М)
+
+> **Важно**: odds обновляются раз в день. Pre-match odds доступны за 1–7 дней до матча. Параметр фильтрации — `game` (не `fixture`).
+
+## Дополнительные эндпоинты
+
+- `GET /odds/bookmakers` — список всех букмекеров (id, name)
+- `GET /odds/bets` — список всех типов ставок (id, name)
 
 ## Выход
 
@@ -31,8 +39,8 @@ interface BookmakerOdds {
   outcome_home: number;   // 2.10
   outcome_draw: number;   // 3.40
   outcome_away: number;   // 3.15
-  total_over: number;     // 1.85  (тотал больше 4.5)
-  total_under: number;    // 1.95  (тотал меньше 4.5)
+  total_over: number;     // 1.85  (тотал больше N.5)
+  total_under: number;    // 1.95  (тотал меньше N.5)
 }
 ```
 
